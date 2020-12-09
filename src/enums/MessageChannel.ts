@@ -1,7 +1,7 @@
 enum MessageChannel {
 
   EMAIL = "email",
-  WHATSAPP = "whatsapp",
+  WHATSAPP = "whatsApp",
   SMS = "sms"
 }
 

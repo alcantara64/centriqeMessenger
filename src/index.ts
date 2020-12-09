@@ -2,6 +2,7 @@ import express from 'express';
 import logger from './loaders/logger-loader';
 import loader from './loaders';
 import { sender } from './modules/Sender';
+import cron from 'node-cron';
 
 (async () => {
 
@@ -23,7 +24,9 @@ import { sender } from './modules/Sender';
         });
 
     });
-   
-    await sender()
+   cron.schedule('* * * * *', async () => {
+        console.log('running a task every minute');
+        await sender()
+     });
   
 })()

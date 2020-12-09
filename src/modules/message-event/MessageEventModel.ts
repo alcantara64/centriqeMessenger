@@ -147,6 +147,7 @@ export default MessageEventModel;
 
 
 export type MessageEventTypes = {
+  _id:string,
   date: Date,
   status: MessageEventStatus,
   content: Content
@@ -157,7 +158,7 @@ export type MessageEventTypes = {
   payload: TransactionalPayload & InteractivePayload & ScheduledPayload,
 }
  type InteractivePayload = {
-  customer: string,
+  customer: [],
   template: any,
 }
  interface TransactionalPayload {
@@ -169,6 +170,7 @@ export type MessageEventTypes = {
   bcc:string,
   subject:string,
   body:string,
+  text: string,
 }
 export type ScheduledPayload = {
   providerType:string

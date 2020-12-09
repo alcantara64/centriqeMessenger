@@ -55,9 +55,18 @@ export default {
         testMode: !!process.env.EMAIL_MAILGUN_TEST_MODE
       }
     },
+    whatsApp:{
+      defaultWhatsAppSender: process.env.WHATSAPP_DEFAULT_SENDER? process.env.WHATSAPP_DEFAULT_SENDER : "+2348140103867",
+      enabled: !!process.env.WHATSAPP_ENABLED,
+    },
+    sms:{
+      enabled: !!process.env.SMS_ENABLED,
+      defaultSMSSender: process.env.SMS_DEFAULT_SENDER? process.env.SMS_DEFAULT_SENDER : "+2348140103867",
+    },
     twillio:{
       accountSID: process.env.TWILIO_ACCOUNT_SID,
       authToken: process.env.TWILIO_AUTH_TOKEN,
+      testMode : !! process.env.TWILIO_ACCOUNT_TEST_MODE
     }
   }
 }

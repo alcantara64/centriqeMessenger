@@ -5,6 +5,10 @@ import Mailgun from 'mailgun-js';
 import config from '../loaders/config.loaders';
 import MessageType from '../enums/MessageType';
 import MessageProviderType from '../enums/MessageProviderType';
+import EmailTemplateModel from '../modules/email-template/EmailTemplateModel';
+import { ObjectId } from 'mongoose';
+import { buildEmailDataFromCustomerTemplate } from './email-template.util';
+import MessageTemplateModel from '../modules/message-template/MessageTemplateModel';
 
 
 export default {
@@ -112,9 +116,6 @@ export async function sendEmail(data: EmailData) {
     logger.error(`lib.email:sendEmail::Error -- ${error.message}`);
     email.statusMessage = error.message
     email.status = 'error'
-
-    throw error;
-
   } finally {
     if (email) {
       logger.debug(`lib.email:sendEmail::Saving email in db.`)
@@ -178,4 +179,30 @@ export async function sendTransactionalEmail(data: TransactionalEmailData) {
     cc: data.cc,
     from: data.from,
   });
+}
+
+export const sendInteractiveEmail  = async (templateId:any, customers:any[]) => {
+  logger.debug(`:sendInteractiveEmail::Start`, templateId);
+
+  const emailTemplate = await MessageTemplateModel.findOne({_id:templateId}) as any;
+  if(emailTemplate && emailTemplate.channel && emailTemplate.channel.email && customers.length){
+  const emails = buildEmailDataFromCustomerTemplate(MessageType.TEMPLATE_INTERACTIVE, null, emailTemplate, customers);
+  for (const email of emails) {
+    await sendEmail(email);
+  }
+  }
+  
+}
+export const sendScheduledMail = async (templateId:string, customers:Array<any>) => {
+  logger.debug(`:sendScheduleMail::Start`,templateId);
+  const emailTemplate = await MessageTemplateModel.findOne({_id:templateId}) as any;
+  if(emailTemplate && emailTemplate.channel && emailTemplate.channel.email && customers.length){
+    const emails = buildEmailDataFromCustomerTemplate(MessageType.TEMPLATE_SCHEDULED, null,  emailTemplate.channel.email, customers);
+    for (const email of emails) {
+      await sendEmail(email);
+    }
+  }
+  logger.info(`:sendScheduleMail::not sent with Id ${templateId} -: Number of customers ${customers.length} `);
+
+
 }
