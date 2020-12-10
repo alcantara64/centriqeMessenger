@@ -76,7 +76,7 @@ export const sender = async () => {
           if (campaign && campaign.filterQuery && campaign.template) {
             const query = JSON.parse(campaign.filterQuery)
             const customers: [] = await CustomerModel.find(query) as any;
-            console.log('customers ==>', customers.length, campaign.channel);
+            logger.debug(`${LOGGER_STR}:sender::Template Scheduled customers ==>`, customers.length, campaign.channel);
             if (campaign.channel === MessageChannel.EMAIL) {
               const mailCustomers = customers.filter((customer: any) => customer.prefMsgChannel === MessageChannel.EMAIL)
               await sendScheduledMail(campaign.template, mailCustomers);
@@ -94,21 +94,21 @@ export const sender = async () => {
           status = MessageEventStatus.PROCESSED;
         }
         else {
-          logger.error(`sender::Unkown message type ${messageEvent.content.messageType} - ${messageEvent._id}`)
+          logger.error(`${LOGGER_STR}:sender::Unkown message type ${messageEvent.content.messageType} - ${messageEvent._id}`)
         }
 
       } catch (error) {
         status = MessageEventStatus.FAILED;
-        logger.error(`sender::Error :- ${error.message}`)
+        logger.error(`${LOGGER_STR}:sender::Error :- ${error.message}`)
       }
       finally {
-        logger.info(`sender::saving status to db :- ${messageEvent._id}`)
+        logger.info(`${LOGGER_STR}:sender::saving status to db :- ${messageEvent._id}`)
         await MessageEventModel.findByIdAndUpdate(messageEvent._id, { status })
       }
 
     }
   } else {
-    logger.info(`Nothing to process`)
+    logger.debug(`${LOGGER_STR}:Nothing to process`)
   }
 
 }
