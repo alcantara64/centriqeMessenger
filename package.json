@@ -4,10 +4,12 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "tsc": "tsc",
     "build": "tsc",
     "dev": "nodemon src/index.ts",
-    "start": "tsc && node dist/index.js"
+    "start": "tsc && node dist/index.js",
+    "start:dist": "node dist/index.js",
+    "test": "mocha -r ts-node/register test/**/*.spec.ts"
   },
   "keywords": [],
   "author": "",
