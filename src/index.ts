@@ -1,5 +1,5 @@
 import express from 'express';
-import logger from './loaders/logger-loader';
+import logger from './lib/logger';
 import loader from './loaders';
 import { sender } from './modules/Sender';
 import cron from 'node-cron';

@@ -3,7 +3,7 @@ import validator from 'validator';
 import mongoose from 'mongoose';
 import _ from 'lodash';
 import AppException from '../exceptions/AppException';
-import logger from '../loaders/logger-loader';
+import logger from '../lib/logger';
 
 export type TemplateTextData = {
   template: string;

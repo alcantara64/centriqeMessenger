@@ -122,7 +122,7 @@ const templateInteractivePayload = new mongoose.Schema({
     ref: 'EmailTemplate',
     required: true
   },
-  customer: [{
+  customers: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Customer'
   }],
@@ -158,7 +158,7 @@ export type MessageEventTypes = {
   payload: TransactionalPayload & InteractivePayload & ScheduledPayload,
 }
  type InteractivePayload = {
-  customer: [],
+  customers: [],
   template: any,
 }
  interface TransactionalPayload {

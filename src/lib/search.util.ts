@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import AppException from "../exceptions/AppException";
-import logger from "../loaders/logger-loader";
+import logger from '../lib/logger';
 import { generateDateNoYearString } from "./date.util";
 import security, { QueryLimiter } from './security.util';
 

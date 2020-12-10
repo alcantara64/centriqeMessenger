@@ -9,7 +9,7 @@ import CustomerModel from "./customer/CustomerModel";
 import CampaignModel from './campaign/CampaignModel';
 import MemberOrgModel from './member-org/MemberOrgModel';
 import HoldingOrgModel from './holding-org/HoldingOrgModel';
-import logger from '../loaders/logger-loader';
+import logger from '../lib/logger';
 MemberOrgModel.exists({_id:{$exists:true}});
 HoldingOrgModel.exists({_id:{$exists:true}});
 export const sender = async () =>{ 
@@ -45,15 +45,15 @@ const messageEvents:Array<MessageEventTypes> = await MessageEventModel.find({
      }
     }
     if(messageEvent.content.messageType === MessageType.TEMPLATE_INTERACTIVE){
-        const {customer,template} = messageEvent.content.payload
+        const {customers,template} = messageEvent.content.payload
       
         switch(channel){
           case MessageChannel.EMAIL:
-            messengerStatus =    await sendInteractiveEmail(template,customer);
+            messengerStatus =    await sendInteractiveEmail(template,customers);
             break;
           case MessageChannel.SMS:
           case MessageChannel.WHATSAPP:
-            messengerStatus =  await sendInteractiveMessage(template,customer,channel);
+            messengerStatus =  await sendInteractiveMessage(template,customers,channel);
            break;
            default:
             messengerStatus = null
