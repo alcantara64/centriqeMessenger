@@ -181,12 +181,12 @@ async function isUniqueCode(doc: any, code: any): Promise<boolean> {
 
 function emailSchemaInternal(): any {
   return emailSchema({
-    isUnique: isUniqeEmail
+    isUnique: isUniqueEmail
   });
 }
 
 
-async function isUniqeEmail(doc: any, email: any): Promise<boolean> {
+async function isUniqueEmail(doc: any, email: any): Promise<boolean> {
   return await isUnique(CustomerModel, doc, {
     email: email,
     memberOrg: doc.memberOrg,
@@ -196,8 +196,8 @@ async function isUniqeEmail(doc: any, email: any): Promise<boolean> {
 
 
 
-customerSchema.index({ code: 1, memberOrgId: 1, holdingOrg: 1 }, { unique: true });
-customerSchema.index({ email: 1, memberOrgId: 1, holdingOrg: 1 }, { unique: true });
+customerSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true });
+customerSchema.index({ email: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true });
 const CustomerModel = mongoose.model('Customer', customerSchema);
 
 export default CustomerModel;

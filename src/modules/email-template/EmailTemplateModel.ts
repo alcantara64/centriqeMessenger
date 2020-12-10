@@ -57,7 +57,7 @@ async function isUniqueCode(doc: any, code: any): Promise<boolean> {
   });
 }
 
-emailTemplateSchema.index({ code: 1, memberOrgId: 1, holdingOrg: 1 }, { unique: true });
+emailTemplateSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true });
 const EmailTemplateModel = mongoose.model('EmailTemplate', emailTemplateSchema);
 
 export default EmailTemplateModel;
