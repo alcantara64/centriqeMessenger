@@ -31,7 +31,6 @@
     "@types/lodash": "^4.14.165",
     "@types/luxon": "^1.25.0",
     "@types/mailgun-js": "^0.22.11",
-    "@types/mongoose": "^5.10.2",
     "@types/node-cron": "^2.0.3",
     "@types/validator": "^13.1.1",
     "eslint": "^7.14.0",

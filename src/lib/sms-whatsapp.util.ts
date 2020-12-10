@@ -24,58 +24,58 @@ export type SmsWhatsAppData = {
   providerInfo?: SMSDataProviderInfo;
 };
 type SmsData = {
-  body:string,
+  body: string,
   from: string,
-  to:string
+  to: string
 }
 
 
 const twilioClient = Twilio(config.messaging.twillio.accountSID, config.messaging.twillio.authToken);
 
-export const sendMessage = ({body,from,to}:SmsData, isWhatsApp = false) =>{
+export const sendMessage = async ({ body, from, to }: SmsData, isWhatsApp = false) => {
   // TODO verify is a valid phone number;
   let sender = from;
   let receiver = to;
-  if(isWhatsApp){
-     sender = `whatsapp:${from}`;
-     receiver = `whatsapp:${to}`;
+  if (isWhatsApp) {
+    sender = `whatsapp:${from}`;
+    receiver = `whatsapp:${to}`;
   }
-    
-    return twilioClient.messages.create({
-        body,
-        from:sender,
-        to:receiver,
-      })
+
+  return await twilioClient.messages.create({
+    body,
+    from: sender,
+    to: receiver,
+  })
+}
+
+export const sendInteractiveMessage = async (templateId: string, customers: any[], channel: MessageChannel) => {
+  const template = await MessageTemplateModel.findOne({ _id: templateId })
+    .populate('memberOrg')
+    .populate('holdingOrg') as any;
+
+  if (template && customers.length > 0) {
+    const { defaultWhatsAppSender, defaultSmsSender } = template.memberOrg || template.holdingOrg;
+    const from = channel === MessageChannel.SMS ? defaultSmsSender : defaultWhatsAppSender;
+    const messages = buildSmsDataFromCustomerTemplate(MessageType.TEMPLATE_INTERACTIVE, from, template, customers, channel);
+    if (messages.length) {
+      for (const message of messages) {
+        await sendSMSMessage(message, channel === MessageChannel.WHATSAPP);
+      }
     }
-
-export const  sendInteractiveMessage = async (templateId:string, customers:any[], channel:MessageChannel) => {
-  const template = await MessageTemplateModel.findOne({_id:templateId})
-  .populate('memberOrg')
-  .populate('holdingOrg') as any;
-
-  if(template && customers.length > 0 ){
-    const {defaultWhatsAppSender, defaultSmsSender} = template.memberOrg || template.holdingOrg;
-    const from  = channel === MessageChannel.SMS ? defaultSmsSender:defaultWhatsAppSender;
-   const messages = buildSmsDataFromCustomerTemplate(MessageType.TEMPLATE_INTERACTIVE,from, template, customers,channel);
-   if(messages.length){
-     for(const message of messages ){
-      sendSMSMessage(message,channel===MessageChannel.WHATSAPP);
-     }
-   }
   }
 
 }
 
-export function buildSmsDataFromCustomerTemplate(messageType: MessageType, from: string | null, template: any, customers: any[], _channel:MessageChannel): SmsWhatsAppData[] {
+export function buildSmsDataFromCustomerTemplate(messageType: MessageType, from: string | null, template: any, customers: any[], _channel: MessageChannel): SmsWhatsAppData[] {
   const list: Array<SmsWhatsAppData> = [];
 
-  const { channel} = template;
+  const { channel } = template;
   let text = '';
-if(_channel === MessageChannel.SMS){
- text =  channel.sms.text;
-}else{
-  text =  channel.whatsApp.text;
-}
+  if (_channel === MessageChannel.SMS) {
+    text = channel.sms.text;
+  } else {
+    text = channel.whatsApp.text;
+  }
 
   const textPlaceholders = extractPlaceholders(text);
 
@@ -93,7 +93,7 @@ if(_channel === MessageChannel.SMS){
         customerId: customer._id,
       }
     }
-    if(from!==null) {
+    if (from !== null) {
       smsData.from = from;
     }
 
@@ -103,26 +103,26 @@ if(_channel === MessageChannel.SMS){
   return list;
 }
 
-export async function sendSMSMessage(data: SmsWhatsAppData, isWhatsApp =false) {
-  
+export async function sendSMSMessage(data: SmsWhatsAppData, isWhatsApp = false) {
+
   let smsWhatsApp: any = null;
   let result = null;
 
   try {
-    logger.info(`lib.sms-whatsapp:sendSMSMessage::Sending new ${isWhatsApp?'WhatsApp ':'SMS '} message from ${data.from} - to ${data.to}`);
+    logger.info(`lib.sms-whatsapp:sendSMSMessage::Sending new ${isWhatsApp ? 'WhatsApp ' : 'SMS '} message from ${data.from} - to ${data.to}`);
 
     smsWhatsApp = new SmsWhatsAppModel(data);
     smsWhatsApp.usedDefaultSender = false;
     if (_.isEmpty(smsWhatsApp.from)) {
-      const defaultSender = isWhatsApp? config.messaging.whatsApp.defaultWhatsAppSender :config.messaging.sms.defaultSMSSender;
+      const defaultSender = isWhatsApp ? config.messaging.whatsApp.defaultWhatsAppSender : config.messaging.sms.defaultSMSSender;
       logger.debug(`lib.sms-whatsapp:sendSMSMessage::From address not set, using default sender ${defaultSender}`)
       smsWhatsApp.from = defaultSender;
       smsWhatsApp.usedDefaultSender = true;
     }
-   
+
     smsWhatsApp.status = 'pending';
     smsWhatsApp.testMode = isSmsTestMode();
-    smsWhatsApp.channel = isWhatsApp?MessageChannel.WHATSAPP : MessageChannel.SMS
+    smsWhatsApp.channel = isWhatsApp ? MessageChannel.WHATSAPP : MessageChannel.SMS
     smsWhatsApp.populateProviderInfo(data.providerType, data.providerInfo);
     const validationErrors = smsWhatsApp.validateDataAndGenerateErrorObject();
 
@@ -136,11 +136,11 @@ export async function sendSMSMessage(data: SmsWhatsAppData, isWhatsApp =false) {
     } else {
       //send sms
 
-      if ((config.messaging.whatsApp.enabled === true && isWhatsApp) || ( config.messaging.whatsApp.enabled && !isWhatsApp)) {
+      if ((config.messaging.whatsApp.enabled === true && isWhatsApp) || (config.messaging.whatsApp.enabled && !isWhatsApp)) {
         logger.debug(`lib.sms-whatsapp:sendSMSMessage::Message sending is enabled.`);
 
 
-        result = await sendMessage({to:data.to, from:smsWhatsApp.from, body:data.text},isWhatsApp)
+        result = await sendMessage({ to: data.to, from: smsWhatsApp.from, body: data.text }, isWhatsApp)
 
         smsWhatsApp.status = 'sent';
       } else {

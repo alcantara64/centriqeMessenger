@@ -13,6 +13,7 @@ import logger from '../lib/logger';
 MemberOrgModel.exists({ _id: { $exists: true } });
 HoldingOrgModel.exists({ _id: { $exists: true } });
 
+const LOGGER_STR = "modules.Sender";
 
 export const sender = async () => {
 
@@ -20,12 +21,14 @@ export const sender = async () => {
     date: { $lte: new Date() },
     status: MessageEventStatus.PENDING,
   }).populate('content.payload.customer') as any;
+
+  logger.info(`${LOGGER_STR}:sender::Number of events found: ${messageEvents.length}`);
   if (messageEvents.length > 0) {
     for (const messageEvent of messageEvents) {
-      let { channel } = messageEvent.content.payload;
+      const { channel } = messageEvent.content.payload;
       let status = MessageEventStatus.PENDING;
-      try {
 
+      try {
         let messengerStatus = null;
         if (messageEvent.content.messageType === MessageType.TRANSACTIONAL) {
           const { from, to, cc, body, bcc, subject, text } = messageEvent.content.payload;
@@ -41,12 +44,12 @@ export const sender = async () => {
               messengerStatus = null
           }
           if (!messengerStatus) {
-            status = MessageEventStatus.PROCESSED
-          } else {
             status = MessageEventStatus.FAILED
+          } else {
+            status = MessageEventStatus.PROCESSED
           }
         }
-        if (messageEvent.content.messageType === MessageType.TEMPLATE_INTERACTIVE) {
+        else if (messageEvent.content.messageType === MessageType.TEMPLATE_INTERACTIVE) {
           const { customers, template } = messageEvent.content.payload
 
           switch (channel) {
@@ -58,17 +61,17 @@ export const sender = async () => {
               messengerStatus = await sendInteractiveMessage(template, customers, channel);
               break;
             default:
-              messengerStatus = null
+              logger.error(`${LOGGER_STR}:sender::No channel information.`, (<any>messageEvent).toJSON());
+              messengerStatus = null;
           }
           if (!messengerStatus) {
-            status = MessageEventStatus.PROCESSED
+            status = MessageEventStatus.FAILED;
           } else {
-            status = MessageEventStatus.FAILED
+            status = MessageEventStatus.PROCESSED;
           }
 
         }
-
-        if (messageEvent.content.messageType === MessageType.TEMPLATE_SCHEDULED) {
+        else if (messageEvent.content.messageType === MessageType.TEMPLATE_SCHEDULED) {
           const campaign: any = await CampaignModel.findOne({ _id: messageEvent.content.payload.campaign });
           if (campaign && campaign.filterQuery && campaign.template) {
             const query = JSON.parse(campaign.filterQuery)
@@ -80,17 +83,20 @@ export const sender = async () => {
             }
             if (campaign.channel === MessageChannel.WHATSAPP) {
               const whatsAppCustomers = customers.filter((customer: any) => customer.prefMsgChannel === MessageChannel.SMS)
-              sendInteractiveMessage(campaign.template, whatsAppCustomers, MessageChannel.WHATSAPP)
+              await sendInteractiveMessage(campaign.template, whatsAppCustomers, MessageChannel.WHATSAPP)
             }
             if (campaign.channel === MessageChannel.SMS) {
               const smsCustomers = customers.filter((customer: any) => customer.prefMsgChannel === MessageChannel.SMS);
-              sendInteractiveMessage(campaign.template, smsCustomers, MessageChannel.SMS)
+              await sendInteractiveMessage(campaign.template, smsCustomers, MessageChannel.SMS)
             }
 
           }
-
+          status = MessageEventStatus.PROCESSED;
         }
-        status = MessageEventStatus.PROCESSED;
+        else {
+          logger.error(`sender::Unkown message type ${messageEvent.content.messageType} - ${messageEvent._id}`)
+        }
+
       } catch (error) {
         status = MessageEventStatus.FAILED;
         logger.error(`sender::Error :- ${error.message}`)
