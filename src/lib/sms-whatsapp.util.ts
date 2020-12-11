@@ -114,7 +114,7 @@ export async function sendSMSMessage(data: SmsWhatsAppData, isWhatsApp = false) 
     smsWhatsApp = new SmsWhatsAppModel(data);
     smsWhatsApp.usedDefaultSender = false;
     if (_.isEmpty(smsWhatsApp.from)) {
-      const defaultSender = isWhatsApp ? config.messaging.whatsApp.defaultWhatsAppSender : config.messaging.sms.defaultSMSSender;
+      const defaultSender = isWhatsApp ? config.messaging.whatsApp.defaultSender : config.messaging.sms.defaultSender;
       logger.debug(`lib.sms-whatsapp:sendSMSMessage::From address not set, using default sender ${defaultSender}`)
       smsWhatsApp.from = defaultSender;
       smsWhatsApp.usedDefaultSender = true;
