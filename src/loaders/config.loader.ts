@@ -50,25 +50,25 @@ export default {
   },
   messaging: {
     email: {
-      enabled: !!process.env.EMAIL_ENABLED,
+      enabled: "true" === process.env.EMAIL_ENABLED,
       defaultSender: process.env.EMAIL_DEFAULT_SENDER ? process.env.EMAIL_DEFAULT_SENDER : "",
       mailgun: {
         apiKey: process.env.EMAIL_MAILGUN_API_KEY ? process.env.EMAIL_MAILGUN_API_KEY : "",
-        testMode: !!process.env.EMAIL_MAILGUN_TEST_MODE
+        testMode: "false" !== process.env.EMAIL_MAILGUN_TEST_MODE
       }
     },
     whatsApp:{
-      defaultWhatsAppSender: process.env.WHATSAPP_DEFAULT_SENDER? process.env.WHATSAPP_DEFAULT_SENDER : "+2348140103867",
-      enabled: !!process.env.WHATSAPP_ENABLED,
+      enabled: "true" === process.env.WHATSAPP_ENABLED,
+      defaultSender: process.env.WHATSAPP_DEFAULT_SENDER? process.env.WHATSAPP_DEFAULT_SENDER : "",
     },
     sms:{
-      enabled: !!process.env.SMS_ENABLED,
-      defaultSMSSender: process.env.SMS_DEFAULT_SENDER? process.env.SMS_DEFAULT_SENDER : "+2348140103867",
+      enabled: "true" === process.env.SMS_ENABLED,
+      defaultSender: process.env.SMS_DEFAULT_SENDER? process.env.SMS_DEFAULT_SENDER : "",
     },
     twillio:{
       accountSID: process.env.TWILIO_ACCOUNT_SID,
       authToken: process.env.TWILIO_AUTH_TOKEN,
-      testMode : !! process.env.TWILIO_ACCOUNT_TEST_MODE
+      testMode : "false" !== process.env.TWILIO_ACCOUNT_TEST_MODE
     }
   }
 }
