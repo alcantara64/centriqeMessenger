@@ -22,7 +22,6 @@ export type EmailDataProviderInfo = {
   customerId: string;
   rawSubject: string;
   rawBody: string;
-  rawFooter: string;
 }
 
 export type EmailData = {
@@ -181,23 +180,23 @@ export async function sendTransactionalEmail(data: TransactionalEmailData) {
   });
 }
 
-export const sendInteractiveEmail  = async (templateId:any, customers:any[]) => {
+export const sendInteractiveEmail = async (templateId: any, customers: any[]) => {
   logger.debug(`:sendInteractiveEmail::Start`, templateId);
 
-  const emailTemplate = await MessageTemplateModel.findOne({_id:templateId}) as any;
-  if(emailTemplate && emailTemplate.channel && emailTemplate.channel.email && customers.length){
-  const emails = buildEmailDataFromCustomerTemplate(MessageType.TEMPLATE_INTERACTIVE, null, emailTemplate, customers);
-  for (const email of emails) {
-    await sendEmail(email);
+  const emailTemplate = await MessageTemplateModel.findOne({ _id: templateId }) as any;
+  if (emailTemplate && emailTemplate.channel && emailTemplate.channel.email && customers.length) {
+    const emails = buildEmailDataFromCustomerTemplate(MessageType.TEMPLATE_INTERACTIVE, null, emailTemplate, customers);
+    for (const email of emails) {
+      await sendEmail(email);
+    }
   }
-  }
-  
+
 }
-export const sendScheduledMail = async (templateId:string, customers:Array<any>) => {
-  logger.debug(`:sendScheduleMail::Start`,templateId);
-  const emailTemplate = await MessageTemplateModel.findOne({_id:templateId}) as any;
-  if(emailTemplate && emailTemplate.channel && emailTemplate.channel.email && customers.length){
-    const emails = buildEmailDataFromCustomerTemplate(MessageType.TEMPLATE_SCHEDULED, null,  emailTemplate.channel.email, customers);
+export const sendScheduledMail = async (templateId: string, customers: Array<any>) => {
+  logger.debug(`:sendScheduleMail::Start`, templateId);
+  const emailTemplate = await MessageTemplateModel.findOne({ _id: templateId }) as any;
+  if (emailTemplate && emailTemplate.channel && emailTemplate.channel.email && customers.length) {
+    const emails = buildEmailDataFromCustomerTemplate(MessageType.TEMPLATE_SCHEDULED, null, emailTemplate.channel.email, customers);
     for (const email of emails) {
       await sendEmail(email);
     }

@@ -20,11 +20,12 @@ export const sender = async () => {
   const messageEvents: Array<MessageEventTypes> = await MessageEventModel.find({
     date: { $lte: new Date() },
     status: MessageEventStatus.PENDING,
-  }).populate('content.payload.customer') as any;
+  }).populate('content.payload.customers') as any;
 
   logger.info(`${LOGGER_STR}:sender::Number of events found: ${messageEvents.length}`);
   if (messageEvents.length > 0) {
     for (const messageEvent of messageEvents) {
+
       const { channel } = messageEvent.content.payload;
       let status = MessageEventStatus.PENDING;
 

@@ -55,7 +55,7 @@ const messageTemplateSchema = new mongoose.Schema(
       email: { type: emailSchema },
       whatsApp: { type: whatsAppSchema },
       sms: { type: smsSchema }
-    } as any,
+    },
     status: statusSchema(),
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

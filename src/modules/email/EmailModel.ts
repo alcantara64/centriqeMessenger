@@ -146,7 +146,6 @@ EmailModel.prototype.populateProviderInfo = function (providerType: MessageProvi
         customer: providerInfo.customerId,
         subjectRaw: providerInfo.rawSubject,
         bodyRaw: providerInfo.rawBody,
-        footerRaw: providerInfo.rawFooter
       }
       break;
     }

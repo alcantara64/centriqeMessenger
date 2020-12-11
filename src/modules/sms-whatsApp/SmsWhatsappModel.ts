@@ -73,19 +73,19 @@ SmsWhatsAppModel.prototype.validateDataAndGenerateErrorObject = function () {
     else if (!validator.isMobilePhone(this.from)) {
       this.fieldValidationErrors.push({ "field": "from", "message": `Field needs to contain a valid email address - ${this.from}` })
     }
-  
-  
+
+
     if (_.isEmpty(this.to)) {
       this.fieldValidationErrors.push({ "field": "to", "message": `Field must not be empty.` })
     }
     else if (!validator.isMobilePhone(this.to)) {
       this.fieldValidationErrors.push({ "field": "to", "message": `Field needs to contain a valid phone number - ${this.to}` })
-    }  
+    }
 
     if (_.isEmpty(this.text)) {
       this.fieldValidationErrors.push({ "field": "text", "message": `Field cannot be empty.` })
     }
-  
+
     return this.fieldValidationErrors;
   }
   SmsWhatsAppModel.prototype.populateProviderInfo = function (providerType: MessageProviderType, providerInfo: EmailDataProviderInfo) {
@@ -97,7 +97,6 @@ SmsWhatsAppModel.prototype.validateDataAndGenerateErrorObject = function () {
           customer: providerInfo.customerId,
           subjectRaw: providerInfo.rawSubject,
           bodyRaw: providerInfo.rawBody,
-          footerRaw: providerInfo.rawFooter
         }
         break;
       }
