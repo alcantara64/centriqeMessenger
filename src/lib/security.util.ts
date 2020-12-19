@@ -4,6 +4,7 @@ import AppException from "../exceptions/AppException";
 import IRowLevelSecurityData from "../interfaces/models/IRowLevelSecurityData";
 import IRowLevelUserSecurity from "../interfaces/models/IRowLevelUserSecurity";
 import mongoose from 'mongoose';
+import DataDomain from "../enums/DataDomain";
 
 
 export default {
@@ -11,13 +12,14 @@ export default {
   buildAccessQuery,
   attachAccessRestrictionToQuery,
   extractRowLevelSecurityData,
-  extractUserSecurity,
   isRoleBasedAccessAllowed,
-  attachMemberOrHoldingOrgToQuery
+  attachMemberOrHoldingOrgToQuery,
+  attachQueryToQuery
 }
 
 /** Check if a user has access to the specified data. */
 function isRowLevelAccessAllowed(
+  dataDomain: DataDomain,
   userSecurity: IRowLevelUserSecurity,
   data: IRowLevelSecurityData | IRowLevelSecurityData[]): boolean {
 
@@ -26,16 +28,16 @@ function isRowLevelAccessAllowed(
   if (!hasAccess) {
     const dataList: IRowLevelSecurityData[] = Array.isArray(data) ? data : [data];
 
-    if (userSecurity.holdingOrgIds) {
+    if ((<any>userSecurity)[dataDomain].holdingOrgs) {
       hasAccess = dataList.every(v => {
-        return v.holdingOrgId ? userSecurity.holdingOrgIds.includes(v.holdingOrgId) : true;
+        return v.holdingOrgId ? (<any>userSecurity)[dataDomain].holdingOrgs.includes(v.holdingOrgId) : true;
       })
     }
 
 
-    if (userSecurity.memberOrgIds) {
+    if ((<any>userSecurity)[dataDomain].memberOrgs) {
       hasAccess = hasAccess && dataList.every(v => {
-        return v.memberOrgId ? userSecurity.memberOrgIds.includes(v.memberOrgId) : true;
+        return v.memberOrgId ? (<any>userSecurity)[dataDomain].memberOrgs.includes(v.memberOrgId) : true;
       })
     }
 
@@ -49,8 +51,8 @@ function isRowLevelAccessAllowed(
  * @param userSecurity
  * @param limiter Limits the security restriction to either memberOrg or holdingOrg. This is only needed for holdingOrg and memberOrg services.
  */
-function attachAccessRestrictionToQuery(query: any, userSecurity: IRowLevelUserSecurity, limiter?: BuildAccessQueryLimiter): any {
-  let accessQuery: any = buildAccessQuery(userSecurity, limiter);
+function attachAccessRestrictionToQuery(query: any, dataDomain: DataDomain, userSecurity: IRowLevelUserSecurity, limiter?: BuildAccessQueryLimiter): any {
+  let accessQuery: any = buildAccessQuery(dataDomain, userSecurity, limiter);
 
   if (accessQuery !== null) {
     accessQuery = { $and: [{ ...query }, accessQuery] };
@@ -71,14 +73,14 @@ export type BuildAccessQueryLimiter = "holdingOrg" | "memberOrg";
  *
  * @returns Returns null in case userSecurity.isAdmin = true
 */
-function buildAccessQuery(userSecurity: IRowLevelUserSecurity, limiter?: BuildAccessQueryLimiter): any {
+function buildAccessQuery(dataDomain: DataDomain, userSecurity: IRowLevelUserSecurity, limiter?: BuildAccessQueryLimiter): any {
   let accessQuery: any = null;
 
   if (userSecurity.isAdmin === true) {
     accessQuery = null;
   } else {
-    let attachHoldingOrgIds = userSecurity.holdingOrgIds && userSecurity.holdingOrgIds.length > 0;
-    let attachMemberOrgIds = userSecurity.memberOrgIds && userSecurity.memberOrgIds.length > 0;
+    let attachHoldingOrgIds = (<any>userSecurity)[dataDomain].holdingOrgs && (<any>userSecurity)[dataDomain].holdingOrgs.length > 0;
+    let attachMemberOrgIds = (<any>userSecurity)[dataDomain].memberOrgs && (<any>userSecurity)[dataDomain].memberOrgs.length > 0;
 
     if (limiter) {
       //if limiter active, only attach the one that's mentioned in the limiter
@@ -91,18 +93,18 @@ function buildAccessQuery(userSecurity: IRowLevelUserSecurity, limiter?: BuildAc
 
       //model.find() would allow for { holdingOrg: userSecurity.holdingOrgIds }
       //however, model.aggregate() requires this more complex solution with $in and ObjectIds
-      const holdingOrgObjectIds = userSecurity.holdingOrgIds.map((v) => { return new mongoose.Types.ObjectId(v); });
-      const memberOrgObjectIds = userSecurity.memberOrgIds.map((v) => { return new mongoose.Types.ObjectId(v); });
+      const holdingOrgObjectIds = (<any>userSecurity)[dataDomain].holdingOrgs.map((v: any) => { return new mongoose.Types.ObjectId(v); });
+      const memberOrgObjectIds = (<any>userSecurity)[dataDomain].memberOrgs.map((v: any) => { return new mongoose.Types.ObjectId(v); });
 
       accessQuery.$or.push({ holdingOrg: { $in: holdingOrgObjectIds } });
       accessQuery.$or.push({ memberOrg: { $in: memberOrgObjectIds } });
     }
     else if (attachHoldingOrgIds) {
-      const holdingOrgObjectIds = userSecurity.holdingOrgIds.map((v) => { return new mongoose.Types.ObjectId(v); });
+      const holdingOrgObjectIds = (<any>userSecurity)[dataDomain].holdingOrgs.map((v: any) => { return new mongoose.Types.ObjectId(v); });
       accessQuery = { holdingOrg: { $in: holdingOrgObjectIds } }
     }
     else if (attachMemberOrgIds) {
-      const memberOrgObjectIds = userSecurity.memberOrgIds.map((v) => { return new mongoose.Types.ObjectId(v); });
+      const memberOrgObjectIds = (<any>userSecurity)[dataDomain].memberOrgs.map((v: any) => { return new mongoose.Types.ObjectId(v); });
       accessQuery = { memberOrg: { $in: memberOrgObjectIds } }
     }
     else {
@@ -142,23 +144,6 @@ function extractRowLevelSecurityData(data: any): IRowLevelSecurityData[] {
 
 
 /**
- * Extracts row level security relevant attributes from mongoose model.
- * @param data
- * @returns Throws AppException if holdingOrg or memberOrg are not defined.
- */
-function extractUserSecurity(user: any): IRowLevelUserSecurity {
-
-  const result: IRowLevelUserSecurity = {
-    isAdmin: user.isAdmin,
-    holdingOrgIds: user.holdingOrgIds,
-    memberOrgIds: user.memberOrgIds
-  }
-
-  return result;
-}
-
-
-/**
  * Uses lib.security.isRoleBasedAccessAllowed
  * @param roleSecurity The user's role security.
  * @param grantingPrivileges The list of privileges that grant access to this endpoint.
@@ -193,7 +178,7 @@ export type QueryLimiter = {
  * @param query A mongodb query
  * @param limiter
  */
-function attachMemberOrHoldingOrgToQuery(query: any, limiter: QueryLimiter) {
+function attachMemberOrHoldingOrgToQuery(query: any, limiter: QueryLimiter): any {
   let limitedQuery = {}
   if (limiter.memberOrg) {
     limitedQuery = {
@@ -215,4 +200,13 @@ function attachMemberOrHoldingOrgToQuery(query: any, limiter: QueryLimiter) {
   }
 
   return limitedQuery;
+}
+
+
+function attachQueryToQuery(query1: any, query2: any, operator: "$and" | "$or") {
+
+  let extendedQuery: any = { }
+  extendedQuery[operator] = [query1, query2];
+
+  return extendedQuery;
 }

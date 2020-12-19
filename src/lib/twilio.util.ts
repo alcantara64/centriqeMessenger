@@ -6,7 +6,6 @@ import { MessageTemplateDocument } from '../models/message/message-template.type
 import { MessageChannel, MessageType, SmsMessage, TemplateInteractiveMessageProvider, TemplateScheduledMessageProvider, WhatsAppMessage } from '../models/message/message.types';
 import { CustomerDocument } from '../models/org/customer.types';
 import SmsSender from '../modules/sender/SmsSender';
-import SmsWhatsAppModel from '../modules/sms-whatsApp/SmsWhatsappModel';
 
 
 

@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { DEFAULT_MODEL_OPTIONS, codeSchema, isUnique, statusSchema } from '../../lib/mongoose.util';
 import _ from 'lodash';
 import searchUtil from '../../lib/search.util';
-import { QueryLimiter } from 'src/lib/security.util';
+import { QueryLimiter } from '../../lib/security.util';
 import { MessageChannel } from '../../models/message/message.types';
 import enumUtil from '../../lib/enum.util';
 import { CampaignDocument, ScheduleType } from './campaign.types';
