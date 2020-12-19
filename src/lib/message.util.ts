@@ -1,9 +1,7 @@
 
-import { compileTemplate, extractPlaceholders, TemplateTextData } from './text-template.util';
-import { EmailMessage, MessageChannel, MessageType } from '../models/message/message.types';
-import { Customer, CustomerDocument } from '../models/org/customer.types';
 import { MessageTemplate } from '../models/message/message-template.types';
-import logger from './logger'
+import { CustomerDocument } from '../models/org/customer.types';
+import { compileTemplate, extractPlaceholders, TemplateTextData } from './text-template.util';
 
 
 export type EmailTemplateResult = {

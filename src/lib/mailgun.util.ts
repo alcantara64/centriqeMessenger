@@ -1,16 +1,14 @@
-import logger from '../lib/logger';
 import _ from 'lodash';
 import Mailgun from 'mailgun-js';
 import config from '../lib/config';
-import { MessageType, EmailMessageDocument, EmailMessage, MessageStatus, MessageChannel, TemplateInteractiveMessageProvider, TemplateScheduledMessageProvider } from '../models/message/message.types';
+import logger from '../lib/logger';
+import { MessageTemplateDocument } from '../models/message/message-template.types';
 import MessageModel from '../models/message/message.model';
-import mongoose from 'mongoose'
-
-
+import { EmailMessage, EmailMessageDocument, MessageChannel, MessageStatus, MessageType, TemplateInteractiveMessageProvider, TemplateScheduledMessageProvider } from '../models/message/message.types';
+import { CustomerDocument } from '../models/org/customer.types';
 import { buildEmailTextFromCustomerTemplate } from './message.util';
-import MessageTemplateModel from '../models/message/message-template.model';
-import { Customer, CustomerDocument } from '../models/org/customer.types';
-import { MessageTemplate, MessageTemplateDocument } from '../models/message/message-template.types';
+
+
 
 
 
