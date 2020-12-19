@@ -2,13 +2,12 @@ import mongoose from 'mongoose';
 import { intSchema, stringSchema, codeSchema, isUnique, emailSchema, statusSchema } from '../../lib/mongoose.util'
 import { DEFAULT_MODEL_OPTIONS } from '../../lib/mongoose.util';
 import { generateDateNoYearString, addUtcIdentifierToDateString } from '../../lib/date.util';
-import MessageChannel from '../../enums/MessageChannel';
+import { MessageChannel } from '../../models/message/message.types';
 import enumUtil from '../../lib/enum.util';
+import { CustomerDocument } from './customer.types';
 
 
 const messageChannelArray = enumUtil.toArray(MessageChannel);
-
-import _ from 'lodash'
 
 const customerSchema = new mongoose.Schema({
   holdingOrg: {
@@ -198,6 +197,6 @@ async function isUniqueEmail(doc: any, email: any): Promise<boolean> {
 
 customerSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true });
 customerSchema.index({ email: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true });
-const CustomerModel = mongoose.model('Customer', customerSchema);
+const CustomerModel = mongoose.model<CustomerDocument>('Customer', customerSchema);
 
 export default CustomerModel;

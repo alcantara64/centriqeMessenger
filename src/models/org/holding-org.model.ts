@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { DEFAULT_MODEL_OPTIONS, codeSchema, isUnique, emailSchema, statusSchema } from '../../lib/mongoose.util';
 import BusinessVertical from '../../enums/BusinessVertical';
 import enumUtil from '../../lib/enum.util';
+import validator from 'validator';
 
 
 const dataDomainSchema = new mongoose.Schema({
@@ -39,22 +40,35 @@ const holdingOrgSchema = new mongoose.Schema(
     websiteAddress: String,
     dataDomainConfig: {
       //attribute name changes/ adjustments also need to be reflected in enum DataDomain.ts
-      customer: {type: dataDomainSchema, required: true},
-      product: {type: dataDomainSchema, required: true},
-      revenue: {type: dataDomainSchema, required: true},
-      cost: {type: dataDomainSchema, required: true},
-      communication: {type: dataDomainSchema, required: true},
-      response: {type: dataDomainSchema, required: true},
-      nps: {type: dataDomainSchema, required: true},
-      profitEdge: {type: dataDomainSchema, required: true},
-      marketPlace: {type: dataDomainSchema, required: true}
-    } as any,
-    defaultEmailSender: emailSchema({emailValidation: {allowDisplayName: true}}),
-    defaultWhatsAppSender: {type: String},
-    defaultSmsSender: {type: String},
+      customer: { type: dataDomainSchema, required: true },
+      product: { type: dataDomainSchema, required: true },
+      revenue: { type: dataDomainSchema, required: true },
+      cost: { type: dataDomainSchema, required: true },
+      communication: { type: dataDomainSchema, required: true },
+      response: { type: dataDomainSchema, required: true },
+      nps: { type: dataDomainSchema, required: true },
+      profitEdge: { type: dataDomainSchema, required: true },
+      marketPlace: { type: dataDomainSchema, required: true }
+    },
+    defaultEmailSender: emailSchema({ emailValidation: { allowDisplayName: true } }),
+    defaultWhatsAppSender: { type: String },
+    defaultSmsSender: { type: String },
+    logoUrl: {
+      type: String,
+      validate:
+      {
+        validator: (v: any) => {
+          let isValid = false;
+          isValid = v ? validator.isURL(v) : v === null || v === ''
+          return isValid;
+        },
+        message: (props: any) => `${props.value} is not a valid Logo URL`,
+        type: 'format'
+      }
+    },
     bussinessVertical: {
       type: [String],
-      enum : businessVerticalArray,
+      enum: businessVerticalArray,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

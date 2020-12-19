@@ -24,32 +24,9 @@ const memberOrgSchema = new mongoose.Schema({
   email: String,
   websiteAddress: String,
   defaultEmailSender: emailSchema({emailValidation: {allowDisplayName: true}}),
+  defaultWhatsAppSender: {type: String},
+  defaultSmsSender: {type: String},
   status: statusSchema(),
-  profitEdge: {
-    type: Number,
-    enum: [0, 1],
-    default: 0,
-  },
-  responseAI: {
-    type: Number,
-    enum: [0, 1],
-    default: 0,
-  },
-  askBuddy: {
-    type: Number,
-    enum: [0, 1],
-    default: 0,  //marketPlAI
-  },
-  communicationAI: {
-    type: Number,
-    enum: [0, 1],
-    default: 0,
-  },
-  marketPlAI: {
-    type: Number,
-    enum: [0, 1],
-    default: 0,
-  },
   holdingOrg: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'HoldingOrg',

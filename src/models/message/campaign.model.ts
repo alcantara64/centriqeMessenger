@@ -2,9 +2,10 @@ import mongoose from 'mongoose';
 import { DEFAULT_MODEL_OPTIONS, codeSchema, isUnique, statusSchema } from '../../lib/mongoose.util';
 import _ from 'lodash';
 import searchUtil from '../../lib/search.util';
-import { QueryLimiter } from '../../lib/security.util';
-import MessageChannel from '../../enums/MessageChannel';
+import { QueryLimiter } from 'src/lib/security.util';
+import { MessageChannel } from '../../models/message/message.types';
 import enumUtil from '../../lib/enum.util';
+import { CampaignDocument, ScheduleType } from './campaign.types';
 
 
 const messageChannelArray = enumUtil.toArray(MessageChannel);
@@ -25,7 +26,7 @@ const filterCriteronSchema = new mongoose.Schema(
       type: String,
       enum: ['and', 'or', '', null, 'AND', 'OR'],
       default: null
-    } as any,
+    },
   },
   //no need for an id. the array will always be replaced entirely with an update
   { _id: false }
@@ -63,7 +64,8 @@ const campaignSchema = new mongoose.Schema(
     channel: {
       type: String,
       required: true,
-      enum: messageChannelArray
+      enum: messageChannelArray,
+      default: MessageChannel.EMAIL
     },
 
     filterCriteria: {
@@ -101,7 +103,7 @@ const docSchedulePattern: any = campaignSchema.path('schedulePattern');
 const oneTimeSchedule = new mongoose.Schema({
   date: { type: Date, required: true }
 }, { _id: false });
-docSchedulePattern.discriminator('oneTime', oneTimeSchedule);
+docSchedulePattern.discriminator(ScheduleType.ONE_TIME, oneTimeSchedule);
 
 
 const dailySchedule = new mongoose.Schema({
@@ -111,7 +113,7 @@ const dailySchedule = new mongoose.Schema({
 
   dayRecurrenceCount: intSchema(),
 }, { _id: false });
-docSchedulePattern.discriminator('daily', dailySchedule);
+docSchedulePattern.discriminator(ScheduleType.DAILY, dailySchedule);
 
 
 const weeklySchedule = new mongoose.Schema({
@@ -126,13 +128,13 @@ const weeklySchedule = new mongoose.Schema({
     validate: [
       {
         validator: (v: any) => { return v.length == 7 },
-        message: () => `The dayOfWeek attribute needs to contain 7 values`,
+        message: props => `The dayOfWeek attribute needs to contain 7 values`,
         type: 'format'
       }
     ]
-  } as any
+  }
 }, { _id: false });
-docSchedulePattern.discriminator('weekly', weeklySchedule);
+docSchedulePattern.discriminator(ScheduleType.WEEKY, weeklySchedule);
 
 
 const monthlySchedule = new mongoose.Schema({
@@ -146,7 +148,7 @@ const monthlySchedule = new mongoose.Schema({
       enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31]
     },
     monthRecurrenceCount: Number,
-  } as any,
+  },
 
   byWeekDay: {
     occurence: {
@@ -158,11 +160,11 @@ const monthlySchedule = new mongoose.Schema({
       enum: [0, 1, 2, 3, 4, 5, 6],
     },
     monthRecurrenceCount: intSchema()
-  } as any
+  }
 
 
 }, { _id: false });
-docSchedulePattern.discriminator('monthly', monthlySchedule);
+docSchedulePattern.discriminator(ScheduleType.MONTHLY, monthlySchedule);
 
 
 const yearlySchedule = new mongoose.Schema({
@@ -175,13 +177,13 @@ const yearlySchedule = new mongoose.Schema({
   byMonthDay: {
     month: {
       type: Number,
-      enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
     },
     day: {
       type: Number,
       enum: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31],
     }
-  } as any,
+  },
 
   byMonthWeekDay: {
     occurence: {
@@ -196,11 +198,11 @@ const yearlySchedule = new mongoose.Schema({
       type: Number,
       enum: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
     },
-  } as any
+  }
 
 
 }, { _id: false });
-docSchedulePattern.discriminator('yearly', yearlySchedule);
+docSchedulePattern.discriminator(ScheduleType.YEARLY, yearlySchedule);
 
 
 /****************** scheulde patterns ************************/
@@ -293,6 +295,6 @@ function generateFilterQuery(criteria: any, queryLimiter: QueryLimiter): any {
 
 
 campaignSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true })
-const CampaignModel = mongoose.model('Campaign', campaignSchema);
+const CampaignModel = mongoose.model<CampaignDocument>('Campaign', campaignSchema);
 
 export default CampaignModel;

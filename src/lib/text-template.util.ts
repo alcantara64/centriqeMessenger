@@ -3,7 +3,7 @@ import validator from 'validator';
 import mongoose from 'mongoose';
 import _ from 'lodash';
 import AppException from '../exceptions/AppException';
-import logger from '../lib/logger';
+import logger from './logger';
 
 export type TemplateTextData = {
   template: string;
@@ -11,7 +11,13 @@ export type TemplateTextData = {
   compiledTemplate: string;
 }
 
-
+/**
+ * Compiles a template string by replacing placeholders with actual data.
+ * @param template Any string with or without placeholders in format {#placeholders}
+ * @param obj data class that is used to populated the placeholders in the template
+ * @param placeholders Optional parameter. If compileTemplate is used in a loop, it may make sense to extract placeholders with function
+ * extractPlaceholders once before the loop and pass placehodlers then into this function
+ */
 export function compileTemplate(template: string, obj: any, placeholders?: string[]): TemplateTextData {
   if(placeholders === undefined) {
     placeholders = extractPlaceholders(template);
@@ -36,7 +42,7 @@ export function replaceTemplatePlaceholders(text: string, placeholders: string[]
   return resultText;
 }
 
-export function validatePlaceholders(attributeNames: string[], model: any) {
+export function validatePlaceholders(attributeNames: string[], model: mongoose.Model<any>) {
   const schemaPaths = <any>model.schema.paths
 
   for (let attributeName of attributeNames) {

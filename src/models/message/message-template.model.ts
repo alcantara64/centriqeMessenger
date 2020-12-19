@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import DataDomainConfig from '../../enums/DataDomainConfig';
 import { codeSchema, DEFAULT_MODEL_OPTIONS, isUnique, statusSchema } from '../../lib/mongoose.util';
+import { MessageTemplateDocument } from './message-template.types';
 
 const whatsAppSchema = new mongoose.Schema(
   {
@@ -86,6 +87,6 @@ async function isUniqueCode(doc: any, code: any): Promise<boolean> {
 }
 
 messageTemplateSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true });
-const MessageTemplateModel = mongoose.model('MessageTemplate', messageTemplateSchema);
+const MessageTemplateModel = mongoose.model<MessageTemplateDocument>('MessageTemplate', messageTemplateSchema);
 
 export default MessageTemplateModel;

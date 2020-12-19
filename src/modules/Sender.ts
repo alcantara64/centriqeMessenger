@@ -1,115 +1,155 @@
-import { sendInteractiveEmail, sendScheduledMail } from './../lib/email.util';
-import MessageEventStatus from "../enums/MessageEventStatus"
-import MessageType from "../enums/MessageType";
-import MessageEventModel, { MessageEventTypes } from "./message-event/MessageEventModel";
-import MessageChannel from "../enums/MessageChannel";
-import { sendTransactionalEmail } from "../lib/email.util";
-import { sendInteractiveMessage, sendMessage } from "../lib/sms-whatsapp.util";
-import CustomerModel from "./customer/CustomerModel";
-import CampaignModel from './campaign/CampaignModel';
-import MemberOrgModel from './member-org/MemberOrgModel';
-import HoldingOrgModel from './holding-org/HoldingOrgModel';
 import logger from '../lib/logger';
-MemberOrgModel.exists({ _id: { $exists: true } });
-HoldingOrgModel.exists({ _id: { $exists: true } });
+import { sendEmail } from "../lib/mailgun.util";
+import { sendInteractiveSmsMessage, sendInteractiveWhatsAppMessage, sendScheduledSmsMessage, sendScheduledWhatsAppMessage, sendSmsMessage, sendWhatsAppMessage } from "../lib/twilio.util";
+import { CampaignDocument } from '../models/message/campaign.types';
+import MessageEventModel from "../models/message/message-event.model";
+import { MessageEventDocument, MessageEventStatus, TemplateInteractiveMessageEventDocument, TemplateScheduledMessageEventDocument, TransactionalMessageEventDocument } from '../models/message/message-event.types';
+import { MessageTemplateDocument } from '../models/message/message-template.types';
+import { MessageChannel, MessageType, TransactionalMessageProvider } from '../models/message/message.types';
+import CustomerModel from "../models/org/customer.model";
+import { CustomerDocument } from '../models/org/customer.types';
+import { sendInteractiveEmail, sendScheduledEmail } from './../lib/mailgun.util';
+
+
+
 
 const LOGGER_STR = "modules.Sender";
 
-export const sender = async () => {
+export async function sender() {
 
-  const messageEvents: Array<MessageEventTypes> = await MessageEventModel.find({
+  //1 - all pending, sorted by oldest first,
+  //2 - findOneAndUpdate(set status in progess); do 3x by messagetype. 1) transationcal, 2) interactive, 3) scheduled
+
+
+  /** First priority is to get all pending transactional events */
+  let messageEvents: MessageEventDocument[] = await MessageEventModel.find({
     date: { $lte: new Date() },
     status: MessageEventStatus.PENDING,
-  }).populate('content.payload.customers') as any;
+    messageType: MessageType.TRANSACTIONAL
+  }).populate('content.payload.customers');
 
-  logger.info(`${LOGGER_STR}:sender::Number of events found: ${messageEvents.length}`);
-  if (messageEvents.length > 0) {
-    for (const messageEvent of messageEvents) {
+  //process
 
-      const { channel } = messageEvent.content.payload;
-      let status = MessageEventStatus.PENDING;
 
-      try {
-        let messengerStatus = null;
-        if (messageEvent.content.messageType === MessageType.TRANSACTIONAL) {
-          const { from, to, cc, body, bcc, subject, text } = messageEvent.content.payload;
-          switch (channel) {
-            case MessageChannel.EMAIL:
-              messengerStatus = await sendTransactionalEmail({ from, to, cc, body, bcc, subject });
-              break;
-            case MessageChannel.SMS:
-            case MessageChannel.WHATSAPP:
-              messengerStatus = await sendMessage({ body: text, from, to }, channel === MessageChannel.WHATSAPP);
-              break;
-            default:
-              messengerStatus = null
-          }
-          if (!messengerStatus) {
-            status = MessageEventStatus.FAILED
-          } else {
-            status = MessageEventStatus.PROCESSED
-          }
-        }
-        else if (messageEvent.content.messageType === MessageType.TEMPLATE_INTERACTIVE) {
-          const { customers, template } = messageEvent.content.payload
+  /** Second priority is to get all pending interactive events */
+  messageEvents = await MessageEventModel.find({
+    date: { $lte: new Date() },
+    status: MessageEventStatus.PENDING,
+    messageType: MessageType.TEMPLATE_INTERACTIVE
+  }).populate('content.payload.customers template template.holdingOrg template.memberOrg customers');
 
-          switch (channel) {
-            case MessageChannel.EMAIL:
-              messengerStatus = await sendInteractiveEmail(template, customers);
-              break;
-            case MessageChannel.SMS:
-            case MessageChannel.WHATSAPP:
-              messengerStatus = await sendInteractiveMessage(template, customers, channel);
-              break;
-            default:
-              logger.error(`${LOGGER_STR}:sender::No channel information.`, (<any>messageEvent).toJSON());
-              messengerStatus = null;
-          }
-          if (!messengerStatus) {
-            status = MessageEventStatus.FAILED;
-          } else {
-            status = MessageEventStatus.PROCESSED;
-          }
+  //process
+  /** Third priority is to get all pending scheduled events */
+  messageEvents = await MessageEventModel.find({
+    date: { $lte: new Date() },
+    status: MessageEventStatus.PENDING,
+    messageType: MessageType.TEMPLATE_SCHEDULED
+  }).populate('content.payload.customers');
 
-        }
-        else if (messageEvent.content.messageType === MessageType.TEMPLATE_SCHEDULED) {
-          const campaign: any = await CampaignModel.findOne({ _id: messageEvent.content.payload.campaign });
-          if (campaign && campaign.filterQuery && campaign.template) {
-            const query = JSON.parse(campaign.filterQuery)
-            const customers: [] = await CustomerModel.find(query) as any;
-            logger.debug(`${LOGGER_STR}:sender::Template Scheduled customers ==>`, customers.length, campaign.channel);
-            if (campaign.channel === MessageChannel.EMAIL) {
-              const mailCustomers = customers.filter((customer: any) => customer.prefMsgChannel === MessageChannel.EMAIL)
-              await sendScheduledMail(campaign.template, mailCustomers);
-            }
-            if (campaign.channel === MessageChannel.WHATSAPP) {
-              const whatsAppCustomers = customers.filter((customer: any) => customer.prefMsgChannel === MessageChannel.SMS)
-              await sendInteractiveMessage(campaign.template, whatsAppCustomers, MessageChannel.WHATSAPP)
-            }
-            if (campaign.channel === MessageChannel.SMS) {
-              const smsCustomers = customers.filter((customer: any) => customer.prefMsgChannel === MessageChannel.SMS);
-              await sendInteractiveMessage(campaign.template, smsCustomers, MessageChannel.SMS)
-            }
+}
 
-          }
-          status = MessageEventStatus.PROCESSED;
-        }
-        else {
-          logger.error(`${LOGGER_STR}:sender::Unkown message type ${messageEvent.content.messageType} - ${messageEvent._id}`)
-        }
 
-      } catch (error) {
-        status = MessageEventStatus.FAILED;
-        logger.error(`${LOGGER_STR}:sender::Error :- ${error.message}`)
+
+
+export async function processTransactionalEvent(messageEvent: TransactionalMessageEventDocument) {
+  logger.info(`${LOGGER_STR}:processTransactionalEvent::MessageEvent ${messageEvent._id}`);
+
+  let status = MessageEventStatus.PENDING;
+
+  switch (messageEvent.payload.channel) {
+    case MessageChannel.EMAIL: {
+      const { from, to, cc, body, bcc, subject } = messageEvent.payload
+
+      const provider: TransactionalMessageProvider = {
+        messageType: MessageType.TRANSACTIONAL
       }
-      finally {
-        logger.info(`${LOGGER_STR}:sender::saving status to db :- ${messageEvent._id}`)
-        await MessageEventModel.findByIdAndUpdate(messageEvent._id, { status })
-      }
-
+      await sendEmail({ from, to, cc, body, bcc, subject, channel: MessageChannel.EMAIL, provider, messageEvent: messageEvent._id });
+      break;
     }
-  } else {
-    logger.debug(`${LOGGER_STR}:Nothing to process`)
-  }
 
+    case MessageChannel.SMS: {
+      const { from, to, text } = messageEvent.payload
+
+      const provider: TransactionalMessageProvider = {
+        messageType: MessageType.TRANSACTIONAL
+      }
+      await sendSmsMessage({ from, to, text, channel: MessageChannel.SMS, provider, messageEvent: messageEvent._id });
+      break;
+    }
+
+    case MessageChannel.WHATSAPP: {
+      const { from, to, text } = messageEvent.payload
+
+      const provider: TransactionalMessageProvider = {
+        messageType: MessageType.TRANSACTIONAL
+      }
+      await sendWhatsAppMessage({ from, to, text, channel: MessageChannel.WHATSAPP, provider, messageEvent: messageEvent._id });
+      break;
+    }
+  }
+}
+
+
+export async function processInteractiveEvent(messageEvent: TemplateInteractiveMessageEventDocument) {
+  logger.info(`${LOGGER_STR}:processInteractiveEvent::MessageEvent ${messageEvent._id}`);
+
+  const customers = <Array<CustomerDocument>><unknown>messageEvent.customers;
+  let status = MessageEventStatus.PENDING;
+
+  for (let customer of customers) {
+    const channel = messageEvent.channel ? messageEvent.channel : customer.prefMsgChannel;
+    const template = <MessageTemplateDocument><unknown>messageEvent.template;
+    const { _id } = messageEvent;
+
+    switch (channel) {
+
+      case MessageChannel.EMAIL: {
+        await sendInteractiveEmail(template, _id, [customer]);
+        break;
+      }
+
+      case MessageChannel.SMS: {
+        await sendInteractiveSmsMessage(template, _id, [customer]);
+        break;
+      }
+
+      case MessageChannel.WHATSAPP: {
+        await sendInteractiveWhatsAppMessage(template, _id, [customer]);
+        break;
+      }
+    }
+  }
+}
+
+
+
+export async function processScheduledEvent(messageEvent: TemplateScheduledMessageEventDocument) {
+  const campaign = <CampaignDocument><unknown>messageEvent.campaign;
+
+  const query = JSON.parse(campaign.filterQuery)
+  const customers = await CustomerModel.find(query);
+  for (let customer of customers) {
+    const channel = customer.prefMsgChannel ? customer.prefMsgChannel : MessageChannel.EMAIL;
+    const template = <MessageTemplateDocument><unknown>campaign.template;
+    const messageEventId = messageEvent._id;
+    const campaignId = campaign._id;
+
+    switch (channel) {
+
+      case MessageChannel.EMAIL: {
+        await sendScheduledEmail(template, messageEventId, campaignId, [customer]);
+        break;
+      }
+
+      case MessageChannel.SMS: {
+        await sendScheduledSmsMessage(template, messageEventId, campaignId, [customer]);
+        break;
+      }
+
+      case MessageChannel.WHATSAPP: {
+        await sendScheduledWhatsAppMessage(template, messageEventId, campaignId, [customer]);
+        break;
+      }
+    }
+  }
 }
