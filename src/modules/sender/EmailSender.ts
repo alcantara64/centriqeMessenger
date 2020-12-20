@@ -64,7 +64,7 @@ class EmailSender extends AMessageSender {
       result = await mailgun.messages().send(messageData);
 
       msg.status = MessageStatus.SENT;
-      if(msg.externalData) {
+      if (msg.externalData) {
         //ts wont allow it differently
         msg.externalData.messageId = result.id;
         msg.externalData.apiResult = result.message;
@@ -73,7 +73,7 @@ class EmailSender extends AMessageSender {
     } else {
       logger.info(`${this.loggerString}:send::Email sending is disabled.`);
 
-      if(msg.externalData) {
+      if (msg.externalData) {
         //ts wont allow it differently
         msg.externalData.messageId = "";
         msg.externalData.apiResult = "Email sending is disabled.";

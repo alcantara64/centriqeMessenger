@@ -21,6 +21,15 @@ const MessageEventSchema = new mongoose.Schema(
       required: true,
       default: MessageEventStatus.PENDING
     },
+    processStartDt: {
+      type: Date
+    },
+    processEndDt: {
+      type: Date
+    },
+    statusMessage: {
+      type: String
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -55,7 +64,7 @@ MessageEventModel.discriminator(MessageType.TRANSACTIONAL, TransactionalMessageE
 const docTransactionalPayload: any = TransactionalMessageEventSchema.path('payload');
 const TransactionalEmailMessageSchema = new mongoose.Schema(
   {
-    from: emailSchema({ required: true, emailValidation: { allowDisplayName: true } }),
+    from: emailSchema({ required: false, emailValidation: { allowDisplayName: true } }),
     to: emailSchema({ required: true }),
     cc: emailSchema(),
     bcc: emailSchema(),
@@ -73,7 +82,7 @@ docTransactionalPayload.discriminator(MessageChannel.EMAIL, TransactionalEmailMe
 
 const TransactionalSmsMessageSchema = new mongoose.Schema(
   {
-    from: { type: String, required: true },
+    from: { type: String },
     to: { type: String, required: true },
     text: { type: String, required: true },
     tags: { type: [String] },
@@ -85,7 +94,7 @@ docTransactionalPayload.discriminator(MessageChannel.SMS, TransactionalSmsMessag
 
 const TransactionalWhatsAppMessageSchema = new mongoose.Schema(
   {
-    from: { type: String, required: true },
+    from: { type: String },
     to: { type: String, required: true },
     text: { type: String, required: true }
     //what about image?
@@ -102,6 +111,14 @@ const TemplateScheduledMessageEventSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Campaign',
       required: true
+    },
+    holdingOrg: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'HoldingOrg',
+    },
+    memberOrg: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'MemberOrg',
     },
   }
 )

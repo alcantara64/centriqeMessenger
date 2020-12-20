@@ -5,22 +5,22 @@ import logger from '../../lib/logger';
 
 
 
-export function validateDataAndGenerateErrorObject(this: MessageDocument | EmailMessageDocument | SmsMessageDocument | WhatsAppMessageDocument): void {
-
+export function validateDataAndGenerateErrorObject(this: MessageDocument | EmailMessageDocument | SmsMessageDocument | WhatsAppMessageDocument): Array<MessageFieldValidationError> {
+  let validationErrors = [];
   switch (this.channel) {
     case MessageChannel.EMAIL: {
       const fnValidate = validateEmail.bind(<EmailMessageDocument>this);
-      this.fieldValidationErrors = fnValidate();
+      validationErrors = fnValidate();
       break;
     }
     case MessageChannel.SMS: {
       const fnValidate = validateSms.bind(<SmsMessageDocument>this);
-      this.fieldValidationErrors = fnValidate();
+      validationErrors = fnValidate();
       break;
     }
     case MessageChannel.WHATSAPP: {
       const fnValidate = validateWhatsApp.bind(<WhatsAppMessageDocument>this);
-      this.fieldValidationErrors = fnValidate();
+      validationErrors = fnValidate();
       break;
     }
     default: {
@@ -29,6 +29,9 @@ export function validateDataAndGenerateErrorObject(this: MessageDocument | Email
       throw new Error(errorMsg)
     }
   }
+
+  this.fieldValidationErrors = validationErrors;
+  return validationErrors;
 }
 
 export function validateEmail(this: EmailMessageDocument): Array<MessageFieldValidationError> {

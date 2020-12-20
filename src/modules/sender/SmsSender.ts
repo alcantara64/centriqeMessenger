@@ -51,7 +51,7 @@ class SmsSender extends AMessageSender {
 
 
       msg.status = MessageStatus.SENT;
-      if(msg.externalData) {
+      if (msg.externalData) {
         //ts wont allow it differently
         msg.externalData.errorCode = result.errorCode;
         msg.externalData.errorMessage = result.errorMessage;
@@ -59,9 +59,9 @@ class SmsSender extends AMessageSender {
 
     } else {
       logger.info(`${this.loggerString}:send::SMS sending is disabled.`);
-      if(msg.externalData) {
+      if (msg.externalData) {
         //ts wont allow it differently
-        msg.externalData.errorMessage= "SMS sending is disabled.";
+        msg.externalData.errorMessage = "SMS sending is disabled.";
       }
       msg.status = MessageStatus.DISABLED;
       //not setting email.externalResult here because there is no external result

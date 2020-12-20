@@ -83,7 +83,6 @@ export function emailSchema(opts: EmailSchemaOptions = {}): any {
       {
         validator: (v: any) => {
           let isValid = false;
-          console.log(`required - ${required}`)
           if (required) {
             isValid = validator.isEmail(v, { allow_display_name: allowDisplayName });
           } else {

@@ -154,18 +154,22 @@ export interface TemplateScheduledMessageProvider {
   messageTemplate: string;
   holdingOrg?: string;
   memberOrg?: string;
-  customer?: string;
-  customerCode?: string;
+  customer: string;
+  customerCode: string;
 }
 
 export interface TemplateInteractiveMessageProvider {
   readonly messageType: MessageType.TEMPLATE_INTERACTIVE;
   dataDomain: DataDomain
   messageTemplate: string;
+  manualOverride: {
+    active: boolean,
+    originalTo?: string;
+  }
   holdingOrg?: string;
   memberOrg?: string;
-  customer?: string;
-  customerCode?: string;
+  customer: string;
+  customerCode: string;
 }
 
 export interface TransactionalMessageProvider {

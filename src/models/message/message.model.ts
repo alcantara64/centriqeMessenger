@@ -162,7 +162,7 @@ MessageModel.discriminator(MessageChannel.WHATSAPP, WhatsAppMessageSchema);
 
 /****************** message provider - start ************************/
 const docProvider: any = MessageSchema.path('provider');
-const TemplateScheduledSchema = new mongoose.Schema(
+const TemplateScheduledProviderSchema = new mongoose.Schema(
   {
     campaign: {
       type: mongoose.Schema.Types.ObjectId,
@@ -200,11 +200,11 @@ const TemplateScheduledSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-docProvider.discriminator(MessageType.TEMPLATE_SCHEDULED, TemplateScheduledSchema);
+docProvider.discriminator(MessageType.TEMPLATE_SCHEDULED, TemplateScheduledProviderSchema);
 
 
 
-const TemplateInteractiveSchema = new mongoose.Schema(
+const TemplateInteractiveProviderSchema = new mongoose.Schema(
   {
     dataDomain: {
       type: String,
@@ -215,6 +215,11 @@ const TemplateInteractiveSchema = new mongoose.Schema(
     messageTemplate: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'MessageTemplate'
+    },
+
+    manualOverride: {
+      active: { type: Boolean, required: true },
+      originalTo: { type: String }
     },
 
     holdingOrg: {
@@ -239,14 +244,14 @@ const TemplateInteractiveSchema = new mongoose.Schema(
   },
   { _id: false }
 );
-docProvider.discriminator(MessageType.TEMPLATE_INTERACTIVE, TemplateInteractiveSchema);
+docProvider.discriminator(MessageType.TEMPLATE_INTERACTIVE, TemplateInteractiveProviderSchema);
 
 
 
-const TransactionalSchema = new mongoose.Schema(
+const TransactionalProviderSchema = new mongoose.Schema(
   {}, { _id: false }
 );
-docProvider.discriminator(MessageType.TRANSACTIONAL, TransactionalSchema);
+docProvider.discriminator(MessageType.TRANSACTIONAL, TransactionalProviderSchema);
 /****************** message provider - end ************************/
 
 

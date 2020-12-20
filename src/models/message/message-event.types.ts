@@ -5,7 +5,8 @@ import { MessageChannel, MessageType } from "../message/message.types";
 export enum MessageEventStatus {
   PROCESSED = "processed",
   FAILED = "failed",
-  PENDING = "pending"
+  PENDING = "pending",
+  PROCESSING = "processing"
 }
 
 
@@ -15,8 +16,11 @@ export interface MessageEvent {
   date: Date;
   messageType: MessageType;
   status?: MessageEventStatus;
-  createdBy?: string
-  modifiedBy?: string
+  statusMessage?: string;
+  processStartDt?: Date;
+  processEndDt?: Date;
+  createdBy?: string;
+  modifiedBy?: string;
 }
 
 export interface MessageEventDocument extends MessageEvent, Document { }
@@ -36,7 +40,7 @@ export type TransactionalPayload = TransactionalEmailPayload | TransactionalSmsP
 
 export interface TransactionalEmailPayload {
   readonly channel: MessageChannel.EMAIL,
-  from: string;
+  from?: string;
   to: string;
   cc?: string;
   bcc?: string;
@@ -47,7 +51,7 @@ export interface TransactionalEmailPayload {
 
 export interface TransactionalSmsPayload {
   readonly channel: MessageChannel.SMS,
-  from: string;
+  from?: string;
   to: string;
   text: string;
   tags: Array<string>;
@@ -55,7 +59,7 @@ export interface TransactionalSmsPayload {
 
 export interface TransactionalWhatsAppPayload {
   readonly channel: MessageChannel.WHATSAPP,
-  from: string;
+  from?: string;
   to: string;
   text: string;
   tags: Array<string>;
@@ -64,7 +68,9 @@ export interface TransactionalWhatsAppPayload {
 
 export interface TemplateScheduledMessageEvent extends MessageEvent {
   readonly messageType: MessageType.TEMPLATE_SCHEDULED;
-  campaign: string
+  campaign: string;
+  holdingOrg?: string;
+  memberOrg?: string;
 }
 export interface TemplateScheduledMessageEventDocument extends TemplateScheduledMessageEvent, Document { }
 export interface TemplateScheduledMessageEventModel extends Model<TemplateScheduledMessageEventDocument> { }

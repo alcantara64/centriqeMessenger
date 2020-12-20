@@ -9,6 +9,7 @@ import { MessageChannel, MessageType, TransactionalMessageProvider } from '../mo
 import CustomerModel from "../models/org/customer.model";
 import { CustomerDocument } from '../models/org/customer.types';
 import { sendInteractiveEmail, sendScheduledEmail } from './../lib/mailgun.util';
+import config from '../lib/config';
 
 
 
@@ -26,9 +27,10 @@ export async function sender() {
     date: { $lte: new Date() },
     status: MessageEventStatus.PENDING,
     messageType: MessageType.TRANSACTIONAL
-  }).populate('content.payload.customers');
+  });
 
   //process
+  await processEvents(messageEvents, processTransactionalEvent);
 
 
   /** Second priority is to get all pending interactive events */
@@ -36,29 +38,84 @@ export async function sender() {
     date: { $lte: new Date() },
     status: MessageEventStatus.PENDING,
     messageType: MessageType.TEMPLATE_INTERACTIVE
-  }).populate('content.payload.customers template template.holdingOrg template.memberOrg customers');
+  }).populate('customers template')
+    .populate({
+      path: 'template',
+      // Get friends of friends - populate the 'friends' array for every friend
+      populate: { path: 'holdingOrg memberOrg' }
+    });
 
   //process
+  await processEvents(messageEvents, processInteractiveEvent);
+
+
   /** Third priority is to get all pending scheduled events */
   messageEvents = await MessageEventModel.find({
     date: { $lte: new Date() },
     status: MessageEventStatus.PENDING,
     messageType: MessageType.TEMPLATE_SCHEDULED
-  }).populate('content.payload.customers');
+  }).populate('content.payload.customers'); //populate definitely needs to be udpated
 
+  //process
+  //still needs to be tested: await processEvents(messageEvents, processScheduledEvent);
 }
 
+
+export async function processEvents(messageEvents: MessageEventDocument[], processFn: Function) {
+  for (let messageEvent of messageEvents) {
+
+    const messageEventCheck = await MessageEventModel.findOneAndUpdate(
+      {
+        _id: messageEvent._id,
+        status: MessageEventStatus.PENDING
+      },
+      {
+        status: MessageEventStatus.PROCESSING,
+        processStartDt: new Date()
+      },
+      { new: true }
+    ).lean();
+
+
+    if (!messageEventCheck) {
+      //this means the message event was already processed by someone else
+      logger.debug(`${LOGGER_STR}:sender::Message event already processed ${messageEvent._id}`)
+      continue;
+    }
+
+    messageEvent.status = MessageEventStatus.PROCESSED
+    try {
+      await processFn(messageEvent);
+    }
+    catch (error) {
+      logger.error(`${LOGGER_STR}:sender::Error while processing message event ${messageEvent._id} -- ${error.message}`);
+      messageEvent.statusMessage = error.message
+      messageEvent.status = MessageEventStatus.FAILED
+    }
+    finally {
+      logger.debug(`${LOGGER_STR}:sender::Updating message event status in db. event ${messageEvent._id}`)
+      messageEvent.processEndDt = new Date();
+      try {
+        await messageEvent.save();
+      } catch (error) {
+        logger.error(`${LOGGER_STR}:sender::Message event status could not be updated in the database ${messageEvent._id}`, error)
+        //not throwing exception at this point. If there was one, it was already thrown.
+      }
+    }
+  }
+}
 
 
 
 export async function processTransactionalEvent(messageEvent: TransactionalMessageEventDocument) {
   logger.info(`${LOGGER_STR}:processTransactionalEvent::MessageEvent ${messageEvent._id}`);
 
-  let status = MessageEventStatus.PENDING;
 
   switch (messageEvent.payload.channel) {
     case MessageChannel.EMAIL: {
-      const { from, to, cc, body, bcc, subject } = messageEvent.payload
+      const { to, cc, body, bcc, subject } = messageEvent.payload
+      let { from } = messageEvent.payload
+      from = from ? from : config.messaging.email.defaultSender;
 
       const provider: TransactionalMessageProvider = {
         messageType: MessageType.TRANSACTIONAL
@@ -68,7 +125,9 @@ export async function processTransactionalEvent(messageEvent: TransactionalMessa
     }
 
     case MessageChannel.SMS: {
-      const { from, to, text } = messageEvent.payload
+      const { to, text } = messageEvent.payload
+      let { from } = messageEvent.payload
+      from = from ? from : config.messaging.sms.defaultSender;
 
       const provider: TransactionalMessageProvider = {
         messageType: MessageType.TRANSACTIONAL
@@ -78,7 +137,9 @@ export async function processTransactionalEvent(messageEvent: TransactionalMessa
     }
 
     case MessageChannel.WHATSAPP: {
-      const { from, to, text } = messageEvent.payload
+      const { to, text } = messageEvent.payload
+      let { from } = messageEvent.payload
+      from = from ? from : config.messaging.whatsApp.defaultSender;
 
       const provider: TransactionalMessageProvider = {
         messageType: MessageType.TRANSACTIONAL
@@ -94,27 +155,25 @@ export async function processInteractiveEvent(messageEvent: TemplateInteractiveM
   logger.info(`${LOGGER_STR}:processInteractiveEvent::MessageEvent ${messageEvent._id}`);
 
   const customers = <Array<CustomerDocument>><unknown>messageEvent.customers;
-  let status = MessageEventStatus.PENDING;
 
   for (let customer of customers) {
     const channel = messageEvent.channel ? messageEvent.channel : customer.prefMsgChannel;
     const template = <MessageTemplateDocument><unknown>messageEvent.template;
-    const { _id } = messageEvent;
 
     switch (channel) {
 
       case MessageChannel.EMAIL: {
-        await sendInteractiveEmail(template, _id, [customer]);
+        await sendInteractiveEmail(template, messageEvent, [customer]);
         break;
       }
 
       case MessageChannel.SMS: {
-        await sendInteractiveSmsMessage(template, _id, [customer]);
+        await sendInteractiveSmsMessage(template, messageEvent, [customer]);
         break;
       }
 
       case MessageChannel.WHATSAPP: {
-        await sendInteractiveWhatsAppMessage(template, _id, [customer]);
+        await sendInteractiveWhatsAppMessage(template, messageEvent, [customer]);
         break;
       }
     }

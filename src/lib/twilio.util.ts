@@ -2,15 +2,17 @@ import _ from 'lodash';
 import config from '../lib/config';
 import logger from '../lib/logger';
 import { buildSmsTextFromCustomerTemplate } from '../lib/message.util';
+import { TemplateInteractiveMessageEventDocument } from '../models/message/message-event.types';
 import { MessageTemplateDocument } from '../models/message/message-template.types';
 import { MessageChannel, MessageType, SmsMessage, TemplateInteractiveMessageProvider, TemplateScheduledMessageProvider, WhatsAppMessage } from '../models/message/message.types';
 import { CustomerDocument } from '../models/org/customer.types';
 import SmsSender from '../modules/sender/SmsSender';
+import WhatsAppSender from '../modules/sender/WhatsAppSender';
 
 
 
 const smsSender = new SmsSender();
-const whatsAppSender = new SmsSender();
+const whatsAppSender = new WhatsAppSender();
 
 export async function sendSmsMessage(message: SmsMessage) {
   await smsSender.sendMessage(message);
@@ -23,30 +25,36 @@ export async function sendWhatsAppMessage(message: WhatsAppMessage) {
 
 
 
-export async function sendInteractiveSmsMessage(template: MessageTemplateDocument, messageEventId: string, customers: CustomerDocument[]) {
-  return await sendInteractiveMessage(MessageChannel.SMS, template, messageEventId, customers);
+export async function sendInteractiveSmsMessage(template: MessageTemplateDocument, messageEvent: TemplateInteractiveMessageEventDocument, customers: CustomerDocument[]) {
+  return await sendInteractiveMessage(MessageChannel.SMS, template, messageEvent, customers);
 }
 
 
-export async function sendInteractiveWhatsAppMessage(template: MessageTemplateDocument, messageEventId: string, customers: CustomerDocument[]) {
-  return await sendInteractiveMessage(MessageChannel.WHATSAPP, template, messageEventId, customers);
+export async function sendInteractiveWhatsAppMessage(template: MessageTemplateDocument, messageEvent: TemplateInteractiveMessageEventDocument, customers: CustomerDocument[]) {
+  return await sendInteractiveMessage(MessageChannel.WHATSAPP, template, messageEvent, customers);
 }
 
-export async function sendInteractiveMessage(channel: MessageChannel, template: MessageTemplateDocument, messageEventId: string, customers: CustomerDocument[]) {
+export async function sendInteractiveMessage(channel: MessageChannel, template: MessageTemplateDocument, messageEvent: TemplateInteractiveMessageEventDocument, customers: CustomerDocument[]) {
+  const { manualOverride } = messageEvent
 
   if (template && customers.length > 0) {
-
+    let manualOverrideActive = false;
+    let manualOverrideTo: string | undefined = "";
 
     const { defaultWhatsAppSender, defaultSmsSender } = <any>template.memberOrg || <any>template.holdingOrg;
     let from: string
     switch (channel) {
       case MessageChannel.SMS: {
         from = defaultSmsSender ? defaultSmsSender : config.messaging.sms.defaultSender;
+        manualOverrideActive = !!manualOverride?.smsTo
+        manualOverrideTo = manualOverride?.smsTo;
         break;
       }
 
       case MessageChannel.WHATSAPP: {
         from = defaultWhatsAppSender ? defaultWhatsAppSender : config.messaging.whatsApp.defaultSender;
+        manualOverrideActive = !!manualOverride?.whatsAppTo
+        manualOverrideTo = manualOverride?.whatsAppTo;
         break;
       }
 
@@ -59,6 +67,9 @@ export async function sendInteractiveMessage(channel: MessageChannel, template: 
 
     const templateResults = buildSmsTextFromCustomerTemplate(template, customers);
     for (const templateResult of templateResults) {
+
+      const to = manualOverrideTo ?  manualOverrideTo : templateResult.customer.cellPhone
+
       const provider: TemplateInteractiveMessageProvider = {
         dataDomain: template.dataDomain,
         messageTemplate: template._id,
@@ -66,22 +77,26 @@ export async function sendInteractiveMessage(channel: MessageChannel, template: 
         customer: templateResult.customer._id,
         customerCode: templateResult.customer.code,
         holdingOrg: template.holdingOrg,
-        memberOrg: template.memberOrg
+        memberOrg: template.memberOrg,
+        manualOverride: {
+          active: manualOverrideActive,
+          originalTo: manualOverrideActive ? templateResult.customer.cellPhone : undefined
+        }
       }
 
       const message = {
         channel: channel,
-        messageEvent: messageEventId,
+        messageEvent: messageEvent._id,
         text: templateResult.textData.compiledTemplate,
-        to: templateResult.customer.cellPhone,
+        to,
         from,
         provider
       };
 
       if (channel === MessageChannel.WHATSAPP) {
-        whatsAppSender.sendMessage(message)
+        await whatsAppSender.sendMessage(message)
       } else {
-        smsSender.sendMessage(message)
+        await smsSender.sendMessage(message)
       }
     }
 
@@ -137,7 +152,7 @@ export async function sendScheduledMessage(channel: MessageChannel, template: Me
         customer: templateResult.customer._id,
         customerCode: templateResult.customer.code,
         holdingOrg: template.holdingOrg,
-        memberOrg: template.memberOrg
+        memberOrg: template.memberOrg,
       }
 
       const message = {

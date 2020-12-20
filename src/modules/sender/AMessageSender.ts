@@ -32,17 +32,17 @@ abstract class AMessageSender {
       }
 
     } catch (error) {
-      logger.error(`l${this.loggerString}:sendMessage::Error -- ${error.message}`);
+      logger.error(`${this.loggerString}:sendMessage::Error -- ${error.message}`);
       message.statusMessage = error.message
       message.status = MessageStatus.FAILED
     } finally {
       if (message) {
-        logger.debug(`${this.loggerString}:sendMessage::Saving email in db.`)
+        logger.debug(`${this.loggerString}:sendMessage::Saving message in db.`)
 
         try {
           await message.save();
         } catch (error) {
-          logger.error(`${this.loggerString}:sendMessage::Email could not be saved in the database`, error)
+          logger.error(`${this.loggerString}:sendMessage::Message could not be saved in the database`, error)
           //not throwing exception at this point. If there was one, it was already thrown.
         }
 
