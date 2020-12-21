@@ -30,7 +30,7 @@ const consoleTransport = new winston.transports.Console({
   ),
   handleExceptions: true,
   //handleRejections: true,
-  level: 'debug'
+  level: config.logging.level
 });
 
 let logConfiguration = null;
@@ -92,14 +92,16 @@ if (process.env.NODE_ENV === 'production') {
         handleExceptions: true,
         //handleRejections: true,
         maxFiles: '1d',
-        utc: false
+        utc: false,
+        level: config.logging.level
       }),
     ],
     exceptionHandlers: [
       new winston.transports.DailyRotateFile({
         filename: `${logDir}/uncaughtExceptions-%DATE%.log`,
         maxFiles: '1d',
-        utc: false
+        utc: false,
+        level: config.logging.level
       }),
     ],
     //    rejectionHandlers: [
