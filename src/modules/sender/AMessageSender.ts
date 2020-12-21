@@ -21,13 +21,13 @@ abstract class AMessageSender {
       const validationErrors = message.validateDataAndGenerateErrorObject();
 
       if (validationErrors.length > 0) {
-        //do not even try to send the email
+        //do not even try to send the message
         logger.error(`${this.loggerString}:sendMessage::There have been validation errors. The message will not be sent. See fieldValidationErrors in the database.`, validationErrors);
         message.status = MessageStatus.FAILED;
         message.statusMessage = `Fields not populated correctly. See fieldValidationErrors.`
         message = await message.save();
       } else {
-        //send email
+        //send message
         await this.send(message);
       }
 

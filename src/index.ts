@@ -4,27 +4,27 @@ import logger from './lib/logger';
 import loader from './loaders';
 import { sender } from './modules/Sender';
 import cron from 'node-cron';
+import util from 'util'
+import config from './lib/config'
 
 (async () => {
-  //const app = express();
   await loader();
-  /*const port: any = process.env.PORT || 5006;
+  const { seconds, enabled } = config.process.startup.delay;
+  const { cronSchedule } = config.process
 
-  const server = app.listen(port, () => {
-      logger.info(`Server is listening on port ${port}...`);
+  logger.info(`index::Starting with delay enabled ${enabled} and cron schedule ${cronSchedule}.`)
 
-      process.on("unhandledRejection", ex => {
-          logger.error("index::undhandledRejection", ex);
-      });
+  if (enabled) {
+    logger.info(`index::Generating random delay with max ${seconds} seconds.`)
+    const randomDelaySeconds = Math.floor(Math.random() * (seconds + 1));
+    logger.info(`index::Using startup delay of ${randomDelaySeconds} seconds.`)
 
-      process.on("unhandledException", ex => {
-          logger.error("index::unhandledException", ex);
-          throw ex;
-      });
+    const sleep = util.promisify(setTimeout);
+    await sleep(randomDelaySeconds * 1000);
+  }
 
-  });*/
-  cron.schedule('* * * * *', async () => {
-    logger.info('index::Starting DB check');
+  cron.schedule(cronSchedule, async () => {
+    logger.info('index::Starting process round');
     await sender()
   });
 })()

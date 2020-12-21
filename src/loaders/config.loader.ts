@@ -39,7 +39,16 @@ const MONGO_DB_URL_NOPW = getMongoDbUrl(false);
 export default {
   nodeEnv: process.env.NODE_ENV,
   server: {
-    port: process.env.SERVER_PORT ? parseInt(process.env.SERVER_PORT, 10) : 5000,
+    port: process.env.SERVER_PORT ? parseInt(process.env.SERVER_PORT, 10) : 5000
+  },
+  process: {
+    startup: {
+      delay: {
+        enabled: process.env.PROCESS_STARTUP_DELAY_ENABLED === "true",
+        seconds: process.env.PROCESS_STARTUP_DELAY_MAX_SECONDS ? Number(process.env.PROCESS_STARTUP_DELAY_MAX_SECONDS) : 30
+      }
+    },
+    cronSchedule: process.env.PROCESS_CRON_SCHEDULE ? process.env.PROCESS_CRON_SCHEDULE : '* * * * * *'
   },
   logging: {
     level: process.env.LOG_LEVEL || 'silly',
@@ -57,18 +66,18 @@ export default {
         testMode: "false" !== process.env.EMAIL_MAILGUN_TEST_MODE
       }
     },
-    whatsApp:{
+    whatsApp: {
       enabled: "true" === process.env.WHATSAPP_ENABLED,
-      defaultSender: process.env.WHATSAPP_DEFAULT_SENDER? process.env.WHATSAPP_DEFAULT_SENDER : "",
+      defaultSender: process.env.WHATSAPP_DEFAULT_SENDER ? process.env.WHATSAPP_DEFAULT_SENDER : "",
     },
-    sms:{
+    sms: {
       enabled: "true" === process.env.SMS_ENABLED,
-      defaultSender: process.env.SMS_DEFAULT_SENDER? process.env.SMS_DEFAULT_SENDER : "",
+      defaultSender: process.env.SMS_DEFAULT_SENDER ? process.env.SMS_DEFAULT_SENDER : "",
     },
-    twillio:{
+    twillio: {
       accountSID: process.env.TWILIO_ACCOUNT_SID,
       authToken: process.env.TWILIO_AUTH_TOKEN,
-      testMode : "false" !== process.env.TWILIO_ACCOUNT_TEST_MODE
+      testMode: "false" !== process.env.TWILIO_ACCOUNT_TEST_MODE
     }
   }
 }
