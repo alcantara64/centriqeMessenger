@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import DataDomainConfig from '../../enums/DataDomainConfig';
 import enumUtil from '../../lib/enum.util';
-import { MessageChannel, MessageDocument, MessageType, MessageStatus, MessageFieldValidationError } from './message.types';
+import { MessageChannel, MessageDocument, MessageType, MessageStatus } from './message.types';
 import { validateDataAndGenerateErrorObject } from "./message.methods";
 
 const messageStatusArray = enumUtil.toArray(MessageStatus);

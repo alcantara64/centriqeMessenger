@@ -19,14 +19,19 @@ export const DEFAULT_MODEL_OPTIONS = {
 
 export type CodeSchemaOptions = {
   required?: boolean,
-  isUnique: Function
+  isUnique?: boolean
+  isUniqueFn: Function,
 }
+/**
+ *
+ * @param opts Only set isUnique if there is no compound unique key
+ */
 export function codeSchema(opts: CodeSchemaOptions) {
-  const { required = true, isUnique } = opts
+  const { required = true, isUnique = false, isUniqueFn } = opts
   return {
     type: String,
     required: required,
-    unique: true,
+    unique: isUnique,
     uppercase: true,
 
     validate: [
@@ -40,7 +45,7 @@ export function codeSchema(opts: CodeSchemaOptions) {
         type: 'format'
       },
       {
-        validator: function (code: any) { return isUnique(this, code) },
+        validator: function (code: any) { return isUniqueFn(this, code) },
         message: (props: any) => `Code ${props.value} is already in use`,
         type: 'unique'
       }
@@ -115,6 +120,96 @@ export function statusSchema() {
   }
 }
 
+
+
+
+/**
+ * Use this to get the filter data that can be used in drop downs, etc.
+ * @param model
+ * @param fieldNames
+ * @param userSecurity
+ */
+export async function getSearchFilterData(model: mongoose.Model<any>, fieldNames: Array<string>, dataDomain: DataDomain, userSecurity: IRowLevelUserSecurity) {
+
+  //1 - get model attribute definitions
+  const searchFilterData = getMongooseModelAttributes(model, fieldNames);
+
+  //2 - define where we need to query the db to get filter data
+  //essentially we dont want db unique values for anything that has data already through enums
+  //or for dates and numbers
+  let fieldNamesForFilterData: Array<string> = [];
+  Object.keys(searchFilterData).forEach(function (key) {
+    const attribute = searchFilterData[key];
+
+    if ((!attribute.data || attribute.data.length == 0) && !['Date', 'Number'].includes(attribute.type)) {
+      fieldNamesForFilterData.push(key);
+    }
+  });
+
+
+  //3 - get unique data
+  const filterData = await getUniqeFilterValues(model, fieldNamesForFilterData, dataDomain, userSecurity);
+
+  Object.keys(filterData).forEach(function (key) {
+    searchFilterData[key].data = filterData[key]
+  });
+
+  return searchFilterData;
+}
+
+
+/**
+ * Retrieves unique values for the specified mongoose model fieldNames by honoring userSecurity
+ * @param model
+ * @param fieldNames
+ * @param userSecurity
+ */
+export async function getUniqeFilterValues(model: mongoose.Model<any>, fieldNames: Array<string>, dataDomain: DataDomain, userSecurity: IRowLevelUserSecurity) {
+  /*
+  build up something like this...
+
+  let filterData = await Customer.aggregate([{
+    $group: {
+      _id: null,
+      country: {$addToSet: '$country'},
+      memberOrg: {$addToSet: '$memberOrg'},
+      holdingOrg: {$addToSet: '$holdingOrg'}
+    }
+  }]);
+  */
+
+  const aggregation = [];
+
+  const queryRestriction = security.buildAccessQuery(dataDomain, userSecurity);
+
+  if (queryRestriction !== null) {
+    aggregation.push({ $match: queryRestriction });
+  }
+
+  const group: any = { _id: null }; //_id always has to be added, see mongoose documentation
+  fieldNames.forEach((fieldName) => {
+    group[fieldName] = { $addToSet: `$${fieldName}` }
+  });
+  aggregation.push({ $group: group });
+
+  let filterData: any = await model.aggregate(aggregation);
+
+  if (filterData.length > 0) {
+    //cleanup [some of those steps can maybe be done in mongoose/mongodb. This needs to be checked.]
+    //1 - flatten object -- it's an array
+    filterData = filterData[0]
+
+    //2 - remove _id -- that's null anyway and doesnt make sense in this scenario
+    delete filterData._id
+
+    //3 - remove null from arrays and sort
+    Object.keys(filterData).forEach(function (key) {
+      filterData[key] = filterData[key].filter((obj: any) => obj).sort();
+    })
+  }
+
+  return filterData;
+}
 
 export function getMongooseModelAttributes(model: mongoose.Model<any>, fieldNames: Array<string>): any {
   const searchSchema: any = {};

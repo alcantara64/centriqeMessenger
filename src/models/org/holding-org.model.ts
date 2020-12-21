@@ -86,7 +86,8 @@ const holdingOrgSchema = new mongoose.Schema(
 
 function codeSchemaInternal(): any {
   return codeSchema({
-    isUnique: isUniqueCode
+    isUniqueFn: isUniqueCode,
+    isUnique: true
   });
 }
 

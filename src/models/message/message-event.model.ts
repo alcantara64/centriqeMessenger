@@ -109,7 +109,7 @@ const TemplateScheduledMessageEventSchema = new mongoose.Schema(
   {
     campaign: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Campaign',
+      ref: 'CampaignVersion',
       required: true
     },
     holdingOrg: {

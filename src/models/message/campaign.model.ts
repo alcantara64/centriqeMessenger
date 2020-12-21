@@ -38,7 +38,7 @@ const schedulePattern = new mongoose.Schema({},
 
 
 
-const campaignSchema = new mongoose.Schema(
+export const CampaignSchema = new mongoose.Schema(
   {
     holdingOrg: {
       type: mongoose.Schema.Types.ObjectId,
@@ -98,7 +98,7 @@ const campaignSchema = new mongoose.Schema(
 
 /****************** scheulde patterns ************************/
 
-const docSchedulePattern: any = campaignSchema.path('schedulePattern');
+const docSchedulePattern: any = CampaignSchema.path('schedulePattern');
 
 const oneTimeSchedule = new mongoose.Schema({
   date: { type: Date, required: true }
@@ -235,7 +235,7 @@ function stringSchema(opts: any = {}) {
 
 function codeSchemaInternal(): any {
   return codeSchema({
-    isUnique: isUniqueCode
+    isUniqueFn: isUniqueCode
   });
 }
 
@@ -246,29 +246,6 @@ async function isUniqueCode(doc: any, code: any): Promise<boolean> {
     holdingOrg: doc.holdingOrg
   });
 }
-
-
-/*
-function setHoldingOrg(this: any, value: any) {
-  const queryLimiter: QueryLimiter = {
-    holdingOrg: value,
-    memberOrg: this.memberOrg
-  }
-  this.filterQuery = generateFilterQuery(value, queryLimiter);
-
-  return value;
-}
-
-function setMemberOrg(this: any, value: any) {
-  const queryLimiter: QueryLimiter = {
-    holdingOrg: this.holdingOrg,
-    memberOrg: value
-  }
-  this.filterQuery = generateFilterQuery(value, queryLimiter);
-
-  return value;
-}
-*/
 
 
 /**
@@ -293,8 +270,9 @@ function generateFilterQuery(criteria: any, queryLimiter: QueryLimiter): any {
   return JSON.stringify(searchUtil.convertCriteriaToMongooseQueryAndAttachOrgLimiter(criteria, queryLimiter));
 }
 
-
-campaignSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true })
-const CampaignModel = mongoose.model<CampaignDocument>('Campaign', campaignSchema);
+//needs to happen before index
+export const CampaignHistorySchema = _.cloneDeep(CampaignSchema)
+CampaignSchema.index({ code: 1, memberOrg: 1, holdingOrg: 1 }, { unique: true })
+const CampaignModel = mongoose.model<CampaignDocument>('Campaign', CampaignSchema);
 
 export default CampaignModel;

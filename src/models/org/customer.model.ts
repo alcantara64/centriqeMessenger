@@ -165,7 +165,7 @@ function setRegDate(this: any, value: any): string {
 
 function codeSchemaInternal(): any {
   return codeSchema({
-    isUnique: isUniqueCode
+    isUniqueFn: isUniqueCode
   });
 }
 
