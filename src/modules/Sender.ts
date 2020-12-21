@@ -75,6 +75,7 @@ export async function sender() {
 
 export async function processEvents(messageEvents: MessageEventDocument[], processFn: Function) {
   for (let messageEvent of messageEvents) {
+    logger.info(`${LOGGER_STR}:sender:processEvents::Checking even ${messageEvent._id}`)
 
     const messageEventCheck = await MessageEventModel.findOneAndUpdate(
       {
@@ -91,7 +92,7 @@ export async function processEvents(messageEvents: MessageEventDocument[], proce
 
     if (!messageEventCheck) {
       //this means the message event was already processed by someone else
-      logger.debug(`${LOGGER_STR}:sender:processEvents::Message event already processed ${messageEvent._id}`)
+      logger.info(`${LOGGER_STR}:sender:processEvents::Message event already processed ${messageEvent._id}`)
       continue;
     }
 
