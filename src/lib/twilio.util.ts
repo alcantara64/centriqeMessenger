@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import config from '../lib/config';
 import logger from '../lib/logger';
-import { buildSmsTextFromCustomerTemplate } from '../lib/message.util';
+import { buildSmsTextFromCustomerTemplate, buildWhatsAppTextFromCustomerTemplate, SmsTemplateResult, WhatsAppTemplateResult } from '../lib/message.util';
 import { TemplateInteractiveMessageEventDocument } from '../models/message/message-event.types';
 import { MessageTemplateDocument } from '../models/message/message-template.types';
 import { MessageChannel, MessageType, SmsMessage, TemplateInteractiveMessageProvider, TemplateScheduledMessageProvider, WhatsAppMessage } from '../models/message/message.types';
@@ -37,6 +37,7 @@ export async function sendInteractiveWhatsAppMessage(template: MessageTemplateDo
 export async function sendInteractiveMessage(channel: MessageChannel, template: MessageTemplateDocument, messageEvent: TemplateInteractiveMessageEventDocument, customers: CustomerDocument[]) {
   const { manualOverride } = messageEvent
 
+  let templateResults: SmsTemplateResult[] | WhatsAppTemplateResult[] = []
   if (template && customers.length > 0) {
     let manualOverrideActive = false;
     let manualOverrideTo: string | undefined = "";
@@ -48,6 +49,7 @@ export async function sendInteractiveMessage(channel: MessageChannel, template: 
         from = defaultSmsSender ? defaultSmsSender : config.messaging.sms.defaultSender;
         manualOverrideActive = !!manualOverride?.smsTo
         manualOverrideTo = manualOverride?.smsTo;
+        templateResults = buildSmsTextFromCustomerTemplate(template, customers);
         break;
       }
 
@@ -55,6 +57,7 @@ export async function sendInteractiveMessage(channel: MessageChannel, template: 
         from = defaultWhatsAppSender ? defaultWhatsAppSender : config.messaging.whatsApp.defaultSender;
         manualOverrideActive = !!manualOverride?.whatsAppTo
         manualOverrideTo = manualOverride?.whatsAppTo;
+        templateResults = buildWhatsAppTextFromCustomerTemplate(template, customers);
         break;
       }
 
@@ -65,7 +68,7 @@ export async function sendInteractiveMessage(channel: MessageChannel, template: 
       }
     }
 
-    const templateResults = buildSmsTextFromCustomerTemplate(template, customers);
+
     for (const templateResult of templateResults) {
 
       const to = manualOverrideTo ?  manualOverrideTo : templateResult.customer.cellPhone

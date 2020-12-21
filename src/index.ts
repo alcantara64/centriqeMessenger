@@ -17,6 +17,7 @@ import config from './lib/config'
   logger.info(`index::Event type processing - transactional ${transactional} - interactive ${templateInteractive} - scheduled ${templateScheduled}`)
 
   if (enabled) {
+    /** This needs to be changed because cron always goes with the same second or minutes that is specified. A delayed startup doesnt help to distribute execution time with multiple containers. */
     logger.info(`index::Generating random delay with max ${seconds} seconds.`)
     const randomDelaySeconds = Math.floor(Math.random() * (seconds + 1));
     logger.info(`index::Using startup delay of ${randomDelaySeconds} seconds.`)
@@ -26,7 +27,7 @@ import config from './lib/config'
   }
 
   cron.schedule(cronSchedule, async () => {
-    logger.info('index::Starting process round');
+    logger.debug('index::Starting process round');
     await sender()
   });
 })()
