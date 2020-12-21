@@ -48,7 +48,12 @@ export default {
         seconds: process.env.PROCESS_STARTUP_DELAY_MAX_SECONDS ? Number(process.env.PROCESS_STARTUP_DELAY_MAX_SECONDS) : 30
       }
     },
-    cronSchedule: process.env.PROCESS_CRON_SCHEDULE ? process.env.PROCESS_CRON_SCHEDULE : '* * * * * *'
+    cronSchedule: process.env.PROCESS_CRON_SCHEDULE ? process.env.PROCESS_CRON_SCHEDULE : '* * * * * *',
+    eventType: {
+      transactional: process.env.PROCESS_EVENT_TYPE_TRANSACTIONAL === "true",
+      templateInteractive: process.env.PROCESS_EVENT_TYPE_TEMPLATE_INTERACTIVE === "true",
+      templateScheduled: process.env.PROCESS_EVENT_TYPE_TEMPLATE_SCHEDULED === "true",
+    }
   },
   logging: {
     level: process.env.LOG_LEVEL || 'silly',

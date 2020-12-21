@@ -18,46 +18,58 @@ const LOGGER_STR = "modules.Sender";
 
 export async function sender() {
 
-  //1 - all pending, sorted by oldest first,
-  //2 - findOneAndUpdate(set status in progess); do 3x by messagetype. 1) transationcal, 2) interactive, 3) scheduled
-
-
   /** First priority is to get all pending transactional events */
-  let messageEvents: MessageEventDocument[] = await MessageEventModel.find({
-    date: { $lte: new Date() },
-    status: MessageEventStatus.PENDING,
-    messageType: MessageType.TRANSACTIONAL
-  });
+  if(config.process.eventType.transactional) {
+    logger.debug(`${LOGGER_STR}:sender::Checking for transactional events`);
+    let messageEvents: MessageEventDocument[] = await MessageEventModel.find({
+      date: { $lte: new Date() },
+      status: MessageEventStatus.PENDING,
+      messageType: MessageType.TRANSACTIONAL
+    }).limit(10);
 
-  //process
-  await processEvents(messageEvents, processTransactionalEvent);
+    //process
+    await processEvents(messageEvents, processTransactionalEvent);
+  }
+
 
 
   /** Second priority is to get all pending interactive events */
-  messageEvents = await MessageEventModel.find({
-    date: { $lte: new Date() },
-    status: MessageEventStatus.PENDING,
-    messageType: MessageType.TEMPLATE_INTERACTIVE
-  }).populate('customers template')
-    .populate({
-      path: 'template',
-      // Get friends of friends - populate the 'friends' array for every friend
-      populate: { path: 'holdingOrg memberOrg' }
-    });
+  if(config.process.eventType.templateInteractive) {
+    logger.debug(`${LOGGER_STR}:sender::Checking for template interactive events`);
+    let messageEvents = await MessageEventModel.find({
+      date: { $lte: new Date() },
+      status: MessageEventStatus.PENDING,
+      messageType: MessageType.TEMPLATE_INTERACTIVE
+    }).populate('customers template')
+      .populate({
+        path: 'template',
+        populate: { path: 'holdingOrg memberOrg' }
+      })
+      .limit(5);
 
-  //process
-  await processEvents(messageEvents, processInteractiveEvent);
+    //process
+    await processEvents(messageEvents, processInteractiveEvent);
+  }
+
 
 
   /** Third priority is to get all pending scheduled events */
-  messageEvents = await MessageEventModel.find({
-    date: { $lte: new Date() },
-    status: MessageEventStatus.PENDING,
-    messageType: MessageType.TEMPLATE_SCHEDULED
-  }).populate('content.payload.customers'); //populate definitely needs to be udpated
+  if(config.process.eventType.templateScheduled) {
+    logger.debug(`${LOGGER_STR}:sender::Checking for template scheduled events`);
+    let messageEvents = await MessageEventModel.find({
+      date: { $lte: new Date() },
+      status: MessageEventStatus.PENDING,
+      messageType: MessageType.TEMPLATE_SCHEDULED
+    }).populate('campaign')
+      .populate({
+        path: 'campaign',
+        populate: { path: 'holdingOrg memberOrg template' }
+      })
+      .limit(2);
 
-  //process
-  //still needs to be tested: await processEvents(messageEvents, processScheduledEvent);
+    //process
+    await processEvents(messageEvents, processScheduledEvent);
+  }
 }
 
 
@@ -79,7 +91,7 @@ export async function processEvents(messageEvents: MessageEventDocument[], proce
 
     if (!messageEventCheck) {
       //this means the message event was already processed by someone else
-      logger.debug(`${LOGGER_STR}:sender::Message event already processed ${messageEvent._id}`)
+      logger.debug(`${LOGGER_STR}:sender:processEvents::Message event already processed ${messageEvent._id}`)
       continue;
     }
 
@@ -88,17 +100,17 @@ export async function processEvents(messageEvents: MessageEventDocument[], proce
       await processFn(messageEvent);
     }
     catch (error) {
-      logger.error(`${LOGGER_STR}:sender::Error while processing message event ${messageEvent._id} -- ${error.message}`);
+      logger.error(`${LOGGER_STR}:sender:processEvents::Error while processing message event ${messageEvent._id} -- ${error.message}`);
       messageEvent.statusMessage = error.message
       messageEvent.status = MessageEventStatus.FAILED
     }
     finally {
-      logger.debug(`${LOGGER_STR}:sender::Updating message event status in db. event ${messageEvent._id}`)
+      logger.debug(`${LOGGER_STR}:sender:processEvents::Updating message event status in db. event ${messageEvent._id}`)
       messageEvent.processEndDt = new Date();
       try {
         await messageEvent.save();
       } catch (error) {
-        logger.error(`${LOGGER_STR}:sender::Message event status could not be updated in the database ${messageEvent._id}`, error)
+        logger.error(`${LOGGER_STR}:sender:processEvents::Message event status could not be updated in the database ${messageEvent._id}`, error)
         //not throwing exception at this point. If there was one, it was already thrown.
       }
     }
@@ -108,7 +120,7 @@ export async function processEvents(messageEvents: MessageEventDocument[], proce
 
 
 export async function processTransactionalEvent(messageEvent: TransactionalMessageEventDocument) {
-  logger.info(`${LOGGER_STR}:processTransactionalEvent::MessageEvent ${messageEvent._id}`);
+  logger.debug(`${LOGGER_STR}:sender:processTransactionalEvent::MessageEvent ${messageEvent._id}`);
 
 
   switch (messageEvent.payload.channel) {
@@ -152,7 +164,7 @@ export async function processTransactionalEvent(messageEvent: TransactionalMessa
 
 
 export async function processInteractiveEvent(messageEvent: TemplateInteractiveMessageEventDocument) {
-  logger.info(`${LOGGER_STR}:processInteractiveEvent::MessageEvent ${messageEvent._id}`);
+  logger.debug(`${LOGGER_STR}:sender:processInteractiveEvent::MessageEvent ${messageEvent._id}`);
 
   const customers = <Array<CustomerDocument>><unknown>messageEvent.customers;
 
@@ -183,6 +195,7 @@ export async function processInteractiveEvent(messageEvent: TemplateInteractiveM
 
 
 export async function processScheduledEvent(messageEvent: TemplateScheduledMessageEventDocument) {
+  logger.debug(`${LOGGER_STR}:sender:processScheduledEvent::MessageEvent ${messageEvent._id}`);
   const campaign = <CampaignDocument><unknown>messageEvent.campaign;
 
   const query = JSON.parse(campaign.filterQuery)

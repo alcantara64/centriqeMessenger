@@ -11,8 +11,10 @@ import config from './lib/config'
   await loader();
   const { seconds, enabled } = config.process.startup.delay;
   const { cronSchedule } = config.process
+  const { templateInteractive, templateScheduled, transactional } = config.process.eventType
 
   logger.info(`index::Starting with delay enabled ${enabled} and cron schedule ${cronSchedule}.`)
+  logger.info(`index::Event type processing - transactional ${transactional} - interactive ${templateInteractive} - scheduled ${templateScheduled}`)
 
   if (enabled) {
     logger.info(`index::Generating random delay with max ${seconds} seconds.`)
