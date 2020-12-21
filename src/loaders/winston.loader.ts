@@ -1,6 +1,7 @@
 import winston from 'winston';
 import 'winston-daily-rotate-file'
 import 'winston-mongodb'
+import config from '../lib/config'
 
 const { combine, splat, timestamp, printf, colorize } = winston.format;
 
@@ -8,13 +9,13 @@ const { combine, splat, timestamp, printf, colorize } = winston.format;
 const logDir = './logs/';
 
 
-const myFormat = printf( ({ level, message, timestamp , ...metadata}) => {
+const myFormat = printf(({ level, message, timestamp, ...metadata }) => {
   let msg = `${timestamp} [${level}] : ${message}`
-  if(metadata.stack) {
+  if (metadata.stack) {
     msg += ` -- ${metadata.stack}`
   }
-  else if(JSON.stringify(metadata)!==JSON.stringify({})) {
-    msg += ' -- '+JSON.stringify(metadata)
+  else if (JSON.stringify(metadata) !== JSON.stringify({})) {
+    msg += ' -- ' + JSON.stringify(metadata)
   }
   return msg
 });
@@ -46,23 +47,32 @@ if (process.env.NODE_ENV === 'production') {
     ),
     transports: [
       consoleTransport,
-      new winston.transports.DailyRotateFile({filename: `${logDir}/logfile-%DATE%.log`,
-                                              handleExceptions: true,
-                                              //handleRejections: true,
-                                              maxFiles: '30d',
-                                              utc: true}),
-//      new winston.transports.MongoDB({db: DB_URL, handleExceptions: true, handleRejections: true}),
+      new winston.transports.DailyRotateFile(
+        {
+          filename: `${logDir}/logfile-%DATE%.log`,
+          handleExceptions: true,
+          //handleRejections: true,
+          maxFiles: '30d',
+          utc: true,
+          level: config.logging.level
+        }),
+      //      new winston.transports.MongoDB({db: DB_URL, handleExceptions: true, handleRejections: true}),
     ],
     exceptionHandlers: [
-      new winston.transports.DailyRotateFile({filename: `${logDir}/uncaughtExceptions-%DATE%.log`,
-                                              maxFiles: '30d',
-                                              utc: true}),
+      new winston.transports.DailyRotateFile(
+        {
+          filename: `${logDir}/uncaughtExceptions-%DATE%.log`,
+          maxFiles: '30d',
+          utc: true,
+          level: config.logging.level
+        }
+      ),
     ],
-//    rejectionHandlers: [
-//      new winston.transports.DailyRotateFile({filename: `${logDir}/rejections-%DATE%.log`,
-//                                              maxFiles: '30d',
-//                                              utc: true}),
-//    ]
+    //    rejectionHandlers: [
+    //      new winston.transports.DailyRotateFile({filename: `${logDir}/rejections-%DATE%.log`,
+    //                                              maxFiles: '30d',
+    //                                              utc: true}),
+    //    ]
   };
 
 
@@ -77,22 +87,26 @@ if (process.env.NODE_ENV === 'production') {
     ),
     transports: [
       consoleTransport,
-      new winston.transports.DailyRotateFile({filename: `${logDir}/logfile-%DATE%.log`,
-                                              handleExceptions: true,
-                                              //handleRejections: true,
-                                              maxFiles: '1d',
-                                              utc: false}),
+      new winston.transports.DailyRotateFile({
+        filename: `${logDir}/logfile-%DATE%.log`,
+        handleExceptions: true,
+        //handleRejections: true,
+        maxFiles: '1d',
+        utc: false
+      }),
     ],
     exceptionHandlers: [
-      new winston.transports.DailyRotateFile({filename: `${logDir}/uncaughtExceptions-%DATE%.log`,
-                                              maxFiles: '1d',
-                                              utc: false}),
+      new winston.transports.DailyRotateFile({
+        filename: `${logDir}/uncaughtExceptions-%DATE%.log`,
+        maxFiles: '1d',
+        utc: false
+      }),
     ],
-//    rejectionHandlers: [
-//      new winston.transports.DailyRotateFile({filename: `${logDir}/rejections-%DATE%.log`,
-//                                              maxFiles: '1d',
-//                                              utc: false}),
-//    ]
+    //    rejectionHandlers: [
+    //      new winston.transports.DailyRotateFile({filename: `${logDir}/rejections-%DATE%.log`,
+    //                                              maxFiles: '1d',
+    //                                              utc: false}),
+    //    ]
   };
 
 }
