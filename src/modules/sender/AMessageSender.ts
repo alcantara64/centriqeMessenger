@@ -11,7 +11,6 @@ abstract class AMessageSender {
 
   public async sendMessage(messageInput: MessageTypes) {
     let message = new MessageModel(messageInput);
-    let result: any
 
     try {
       logger.info(`${this.loggerString}:sendMessage::Sending message -- ${this.logMsgStart(messageInput)}`);

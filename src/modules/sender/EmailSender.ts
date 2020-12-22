@@ -66,7 +66,14 @@ class EmailSender extends AMessageSender {
       msg.status = MessageStatus.SENT;
       if (msg.externalData) {
         //ts wont allow it differently
-        msg.externalData.messageId = result.id;
+        if (result.id && result.id.startsWith("<") && result.id.endsWith(">")) {
+          //this is to get rid of <> because the mailgun event api has the message id in a format without the brakets
+          msg.externalData.messageId = result.id.slice(1, result.id.length - 1);
+
+        } else {
+          msg.externalData.messageId = result.id;
+        }
+
         msg.externalData.apiResult = result.message;
       }
 

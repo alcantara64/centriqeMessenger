@@ -1,3 +1,4 @@
+import config from '../lib/config';
 import logger from '../lib/logger';
 import { sendEmail } from "../lib/mailgun.util";
 import { sendInteractiveSmsMessage, sendInteractiveWhatsAppMessage, sendScheduledSmsMessage, sendScheduledWhatsAppMessage, sendSmsMessage, sendWhatsAppMessage } from "../lib/twilio.util";
@@ -9,7 +10,6 @@ import { MessageChannel, MessageType, TransactionalMessageProvider } from '../mo
 import CustomerModel from "../models/org/customer.model";
 import { CustomerDocument } from '../models/org/customer.types';
 import { sendInteractiveEmail, sendScheduledEmail } from './../lib/mailgun.util';
-import config from '../lib/config';
 
 
 
