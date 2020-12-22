@@ -42,13 +42,8 @@ export default {
     port: process.env.SERVER_PORT ? parseInt(process.env.SERVER_PORT, 10) : 5000
   },
   process: {
-    startup: {
-      delay: {
-        enabled: process.env.PROCESS_STARTUP_DELAY_ENABLED === "true",
-        seconds: process.env.PROCESS_STARTUP_DELAY_MAX_SECONDS ? Number(process.env.PROCESS_STARTUP_DELAY_MAX_SECONDS) : 30
-      }
-    },
     cronSchedule: process.env.PROCESS_CRON_SCHEDULE ? process.env.PROCESS_CRON_SCHEDULE : '* * * * * *',
+    infoOutput: process.env.INFO_OUTPOUT_MINUTES ? Number(process.env.INFO_OUTPOUT_MINUTES) : 5,
     eventType: {
       transactional: process.env.PROCESS_EVENT_TYPE_TRANSACTIONAL === "true",
       templateInteractive: process.env.PROCESS_EVENT_TYPE_TEMPLATE_INTERACTIVE === "true",
